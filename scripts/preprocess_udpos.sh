@@ -23,7 +23,7 @@ LANGS='af,ar,bg,de,el,en,es,et,eu,fa,fi,fr,he,hi,hu,id,it,ja,kk,ko,mr,nl,pt,ru,t
 LC=""
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
-elif [ $MODEL == "xlm-mlm-100-1280" ]; then
+elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
   MODEL_TYPE="xlm"
   LC=" --do_lower_case"
 elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
@@ -40,4 +40,7 @@ python3 $REPO/utils_preprocess.py \
   --max_len $MAXL \
   --output_dir $SAVE_DIR \
   --languages $LANGS $LC #>> $SAVE_DIR/process.log
-cat $SAVE_DIR/*/*.${MODEL_TYPE} | cut -f 2 | grep -v "^$" | sort | uniq > $SAVE_DIR/labels.txt
+if [ ! -f $SAVE_DIR/labels.txt ]; then
+  echo "create label"
+  cat $SAVE_DIR/*/*.${MODEL} | cut -f 2 | grep -v "^$" | sort | uniq > $SAVE_DIR/labels.txt
+fi

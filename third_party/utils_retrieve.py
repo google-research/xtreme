@@ -130,8 +130,8 @@ def shift_embeddings(x, y):
   return x2y, y2x
 
 
-def mine_bitext(x, y, src_text_file, trg_text_file, output_file, mode='mine', 
-                retrieval='max', margin='ratio', threshold=0, 
+def mine_bitext(x, y, src_text_file, trg_text_file, output_file, mode='mine',
+                retrieval='max', margin='ratio', threshold=0,
                 neighborhood=4, use_gpu=False, encoding='utf-8', dist='cosine', use_shift_embeds=False):
   src_inds, src_sents = text_load_unify(src_text_file, encoding, True)
   trg_inds, trg_sents = text_load_unify(trg_text_file, encoding, True)
@@ -141,7 +141,7 @@ def mine_bitext(x, y, src_text_file, trg_text_file, output_file, mode='mine',
   if dist == 'cosine':
     faiss.normalize_L2(x)
     faiss.normalize_L2(y)
-  
+
   if use_shift_embeds:
     x2y, y2x = shift_embeddings(x, y)
 
@@ -158,7 +158,7 @@ def mine_bitext(x, y, src_text_file, trg_text_file, output_file, mode='mine',
 
   if retrieval is not 'fwd':
     print(' - perform {:d}-nn target against source, dist={}'.format(neighborhood, dist))
-    if use_shift_embeds:    
+    if use_shift_embeds:
       y2x_sim, y2x_ind = knn(y2x, x, min(x.shape[0], neighborhood), use_gpu, dist)
       y2x_mean = y2x_sim.mean(axis=1)
     else:
@@ -286,7 +286,7 @@ def read_candidate2score(candidates_file, src_text_file, trg_text_file, src_id_f
   print(' - reading sentences {}'.format(candidates_file))
   src_sent2id = read_sent2id(src_text_file, src_id_file, encoding)
   trg_sent2id = read_sent2id(trg_text_file, trg_id_file, encoding)
-    
+
   print(' - reading candidates {}'.format(candidates_file))
   candidate2score = {}
   with open(candidates_file, encoding=encoding, errors='surrogateescape') as f:
@@ -303,25 +303,31 @@ def read_candidate2score(candidates_file, src_text_file, trg_text_file, src_id_f
   return candidate2score
 
 
-def bucc_eval_train(candidates_file, gold_file, src_file, trg_file, src_id_file, trg_id_file, encoding='utf-8'):
+def bucc_eval(candidates_file, gold_file, src_file, trg_file, src_id_file, trg_id_file, predict_file, threshold=None, encoding='utf-8'):
   candidate2score = read_candidate2score(candidates_file, src_file, trg_file, src_id_file, trg_id_file, encoding)
 
-  print(' - optimizing threshold on gold alignments {}'.format(gold_file))
-  gold = {line.strip() for line in open(gold_file)}
-  threshold = bucc_optimize(candidate2score, gold)
-
-  bitexts = bucc_extract(candidate2score, threshold, None)
-  ncorrect = len(gold.intersection(bitexts))
-  if ncorrect > 0:
-    precision = ncorrect / len(bitexts)
-    recall = ncorrect / len(gold)
-    f1 = 2*precision*recall / (precision + recall)
+  if threshold is not None and gold_file is None:
+    print(' - using threshold {}'.format(threshold))
   else:
-    precision = recall = f1 = 0
+    print(' - optimizing threshold on gold alignments {}'.format(gold_file))
+    gold = {line.strip() for line in open(gold_file)}
+    threshold = bucc_optimize(candidate2score, gold)
 
-  print(' - best threshold={:f}: precision={:.2f}, recall={:.2f}, F1={:.2f}'
-        .format(threshold, 100*precision, 100*recall, 100*f1))
-  return {'best-threshold': threshold, 'precision': 100*precision, 'recall': 100*recall, 'F1': 100*f1}
+  bitexts = bucc_extract(candidate2score, threshold, predict_file)
+  if gold_file is not None:
+    ncorrect = len(gold.intersection(bitexts))
+    if ncorrect > 0:
+      precision = ncorrect / len(bitexts)
+      recall = ncorrect / len(gold)
+      f1 = 2*precision*recall / (precision + recall)
+    else:
+      precision = recall = f1 = 0
+
+    print(' - best threshold={:f}: precision={:.2f}, recall={:.2f}, F1={:.2f}'
+          .format(threshold, 100*precision, 100*recall, 100*f1))
+    return {'best-threshold': threshold, 'precision': 100*precision, 'recall': 100*recall, 'F1': 100*f1}
+  else:
+    return None
 
 
 def similarity_search(x, y, dim, normalize=False):
@@ -333,4 +339,3 @@ def similarity_search(x, y, dim, normalize=False):
   idx.add(x)
   scores, prediction = idx.search(y, 1)
   return prediction
-

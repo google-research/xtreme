@@ -30,13 +30,20 @@ LC=""
 
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
-elif [ $MODEL == "xlm-mlm-100-1280" ]; then
+elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
   MODEL_TYPE="xlm"
   LC=" --do_lower_case"
-elif [ $MODEL == "xlm-roberta-large" ]; then
+elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
   MODEL_TYPE="xlmr"
 fi
 
+if [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-roberta-large" ]; then
+  BATCH_SIZE=2
+  GRAD_ACC=16
+else
+  BATCH_SIZE=8
+  GRAD_ACC=4
+fi
 
 SAVE_DIR="$OUT_DIR/$TASK/${MODEL}-LR${LR}-epoch${EPOCH}-MaxLen${MAXL}/"
 mkdir -p $SAVE_DIR
@@ -50,8 +57,8 @@ python $PWD/third_party/run_classify.py \
   --do_eval \
   --do_predict \
   --data_dir $DATA_DIR/${TASK} \
-  --gradient_accumulation_steps 4 \
-  --per_gpu_train_batch_size 8 \
+  --gradient_accumulation_steps $BATCH_SIZE \
+  --per_gpu_train_batch_size $GRAD_ACC \
   --learning_rate $LR \
   --num_train_epochs $EPOCH \
   --max_seq_length $MAXL \
