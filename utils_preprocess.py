@@ -58,13 +58,14 @@ def panx_tokenize_preprocess(args):
           label = 'O'
         current_subwords_len = len(tokenizer.tokenize(token))
 
-        if current_subwords_len == 0:
-          continue
+        if (current_subwords_len == 0 or current_subwords_len > max_seq_len) and len(token) != 0:
+          token = tokenizer.unk_token
+          current_subwords_len = 1
 
         if (subword_len_counter + current_subwords_len) > max_seq_len:
           fout.write(f"\n{token}\t{label}\n")
           fidx.write(f"\n{idx}\n")
-          subword_len_counter = 0
+          subword_len_counter = current_subwords_len
         else:
           fout.write(f"{token}\t{label}\n")
           fidx.write(f"{idx}\n")
@@ -87,9 +88,12 @@ def panx_tokenize_preprocess(args):
       infile = os.path.join(args.data_dir, f'{file}-{lang}.tsv')
       outfile = os.path.join(out_dir, "{}.{}".format(file, args.model_name_or_path))
       idxfile = os.path.join(out_dir, "{}.{}.idx".format(file, args.model_name_or_path))
-      code = _preprocess_one_file(infile, outfile, idxfile, tokenizer, args.max_len)
-      if code > 0:
-        print(f'finish preprocessing {outfile}')
+      if os.path.exists(outfile) and os.path.exists(idxfile):
+        print(f'{outfile} and {idxfile} exist')
+      else:
+        code = _preprocess_one_file(infile, outfile, idxfile, tokenizer, args.max_len)
+        if code > 0:
+          print(f'finish preprocessing {outfile}')
 
 
 def panx_preprocess(args):
@@ -171,8 +175,11 @@ def udpos_tokenize_preprocess(args):
       infile = os.path.join(args.data_dir, "{}-{}.tsv".format(file, lang))
       outfile = os.path.join(out_dir, "{}.{}".format(file, args.model_name_or_path))
       idxfile = os.path.join(out_dir, "{}.{}.idx".format(file, args.model_name_or_path))
-      _preprocess_one_file(infile, outfile, idxfile, tokenizer, args.max_len)
-      print(f'finish preprocessing {outfile}')
+      if os.path.exists(outfile) and os.path.exists(idxfile):
+        print(f'{outfile} and {idxfile} exist')
+      else:
+        _preprocess_one_file(infile, outfile, idxfile, tokenizer, args.max_len)
+        print(f'finish preprocessing {outfile}')
 
 
 def udpos_preprocess(args):
@@ -191,7 +198,7 @@ def udpos_preprocess(args):
         tag.append(items[3].strip())
         lines.append(line.strip())
         assert len(sent) == int(items[0]), 'line={}, sent={}, tag={}'.format(line, sent, tag)
-    return data    
+    return data
 
   def isfloat(value):
     try:
@@ -318,7 +325,7 @@ def xnli_preprocess(args):
     for i, line in enumerate(open(infile, 'r')):
       if i == 0:
         continue
-      
+
       items = line.strip().split('\t')
       lang = items[0].strip()
       label = "contradiction" if items[1].strip() == "contradictory" else items[1].strip()
@@ -343,7 +350,7 @@ def xnli_preprocess(args):
       for i, line in enumerate(open(infile, 'r')):
         if i == 0:
           continue
-        
+
         items = line.strip().split('\t')
         sent1 = ' '.join(items[0].strip().split(' '))
         sent2 = ' '.join(items[1].strip().split(' '))
@@ -374,7 +381,7 @@ def tatoeba_preprocess(args):
     'nld':'nl', 'por':'pt', 'rus':'ru', 'swh':'sw',
     'tam':'ta', 'tel':'te', 'tha':'th', 'tgl':'tl',
     'tur':'tr', 'urd':'ur', 'vie':'vi', 'cmn':'zh',
-    'eng':'en',     
+    'eng':'en',
   }
   if not os.path.exists(args.output_dir):
     os.makedirs(args.output_dir)
@@ -388,7 +395,7 @@ def tatoeba_preprocess(args):
       tgts = [l.strip() for l in open(tgt_file)]
       idx = range(len(tgts))
       data = zip(tgts, idx)
-      with open(tgt_out, 'w') as ftgt: 
+      with open(tgt_out, 'w') as ftgt:
         for t, i in sorted(data, key=lambda x: x[0]):
           ftgt.write(f'{t}\n')
 

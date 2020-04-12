@@ -303,25 +303,31 @@ def read_candidate2score(candidates_file, src_text_file, trg_text_file, src_id_f
   return candidate2score
 
 
-def bucc_eval_train(candidates_file, gold_file, src_file, trg_file, src_id_file, trg_id_file, encoding='utf-8'):
+def bucc_eval(candidates_file, gold_file, src_file, trg_file, src_id_file, trg_id_file, predict_file, threshold=None, encoding='utf-8'):
   candidate2score = read_candidate2score(candidates_file, src_file, trg_file, src_id_file, trg_id_file, encoding)
 
-  print(' - optimizing threshold on gold alignments {}'.format(gold_file))
-  gold = {line.strip() for line in open(gold_file)}
-  threshold = bucc_optimize(candidate2score, gold)
-
-  bitexts = bucc_extract(candidate2score, threshold, None)
-  ncorrect = len(gold.intersection(bitexts))
-  if ncorrect > 0:
-    precision = ncorrect / len(bitexts)
-    recall = ncorrect / len(gold)
-    f1 = 2*precision*recall / (precision + recall)
+  if threshold is not None and gold_file is None:
+    print(' - using threshold {}'.format(threshold))
   else:
-    precision = recall = f1 = 0
+    print(' - optimizing threshold on gold alignments {}'.format(gold_file))
+    gold = {line.strip() for line in open(gold_file)}
+    threshold = bucc_optimize(candidate2score, gold)
 
-  print(' - best threshold={:f}: precision={:.2f}, recall={:.2f}, F1={:.2f}'
-        .format(threshold, 100*precision, 100*recall, 100*f1))
-  return {'best-threshold': threshold, 'precision': 100*precision, 'recall': 100*recall, 'F1': 100*f1}
+  bitexts = bucc_extract(candidate2score, threshold, predict_file)
+  if gold_file is not None:
+    ncorrect = len(gold.intersection(bitexts))
+    if ncorrect > 0:
+      precision = ncorrect / len(bitexts)
+      recall = ncorrect / len(gold)
+      f1 = 2*precision*recall / (precision + recall)
+    else:
+      precision = recall = f1 = 0
+
+    print(' - best threshold={:f}: precision={:.2f}, recall={:.2f}, F1={:.2f}'
+          .format(threshold, 100*precision, 100*recall, 100*f1))
+    return {'best-threshold': threshold, 'precision': 100*precision, 'recall': 100*recall, 'F1': 100*f1}
+  else:
+    return None
 
 
 def similarity_search(x, y, dim, normalize=False):
