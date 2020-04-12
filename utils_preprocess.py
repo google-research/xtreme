@@ -314,7 +314,7 @@ def pawsx_preprocess(args):
         continue
       file = split2file[split]
       infile = os.path.join(args.data_dir, lang, "{}.tsv".format(file))
-      outfile = os.path.join(args.output_dir, "{}-{}.tsv".format(lang, split))
+      outfile = os.path.join(args.output_dir, "{}-{}.tsv".format(split, lang))
       _preprocess_one_file(infile, outfile, remove_label=(split == 'test'))
       print(f'finish preprocessing {outfile}')
 
@@ -334,7 +334,7 @@ def xnli_preprocess(args):
       all_langs[lang].append((sent1, sent2, label))
     print(f'# langs={len(all_langs)}')
     for lang, pairs in all_langs.items():
-      outfile = os.path.join(output_dir, '{}-{}.tsv'.format(lang, split))
+      outfile = os.path.join(output_dir, '{}-{}.tsv'.format(split, lang))
       with open(outfile, 'w') as fout:
         writer = csv.writer(fout, delimiter='\t')
         for (sent1, sent2, label) in pairs:
