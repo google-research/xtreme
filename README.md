@@ -25,7 +25,7 @@ In order for models to be successful on the XTREME benchmark, they must learn re
 
 # Download the data
 
-In order to run experiments on XTREME, the first step is to download the dependencies. We assumed you have installed [`anaconda`](https://www.anaconda.com/). The additional requirements including `transformers`, `seqeval` (for sequence labelling evaluation), `tensorboardx`, `jieba`, `kytea`, and `pythainlp` (for text segmentation in Chinese, Japanese, and Thai), and `sacremoses` can be installed by running the following script:
+In order to run experiments on XTREME, the first step is to download the dependencies. We assumed you have installed [`anaconda`](https://www.anaconda.com/) and use Python 3.7+. The additional requirements including `transformers`, `seqeval` (for sequence labelling evaluation), `tensorboardx`, `jieba`, `kytea`, and `pythainlp` (for text segmentation in Chinese, Japanese, and Thai), and `sacremoses` can be installed by running the following script:
 ```
 bash install_tools.sh
 ```
