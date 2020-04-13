@@ -233,7 +233,7 @@ def mean_pool_embedding(all_layer_outputs, masks):
   """
   sent_embeds = []
   for embeds in all_layer_outputs:
-    embeds = (embeds * masks.unsqueeze(2)).sum(dim=1) / masks.sum(dim=1).view(-1, 1)
+    embeds = (embeds * masks.unsqueeze(2).float()).sum(dim=1) / masks.sum(dim=1).view(-1, 1).float()
     sent_embeds.append(embeds)
   return sent_embeds
 
@@ -441,12 +441,10 @@ def main():
 
     src_lang2 = args.src_language
     tgt_lang2 = args.tgt_language
-    src_lang3 = lang2_dict[args.src_language]
-    tgt_lang3 = lang2_dict[args.tgt_language]
-    src_text_file = os.path.join(args.data_dir, 'tatoeba.{}-eng.{}'.format(src_lang3, src_lang3))
-    tgt_text_file = os.path.join(args.data_dir, 'tatoeba.{}-eng.eng'.format(src_lang3))
-    src_tok_file = os.path.join(args.output_dir, 'tatoeba.{}-eng.tok.{}'.format(src_lang3, src_lang3))
-    tgt_tok_file = os.path.join(args.output_dir, 'tatoeba.{}-eng.tok.eng'.format(src_lang3))
+    src_text_file = os.path.join(args.data_dir, 'tatoeba.{}-eng.{}'.format(src_lang2, src_lang2))
+    tgt_text_file = os.path.join(args.data_dir, 'tatoeba.{}-eng.eng'.format(src_lang2))
+    src_tok_file = os.path.join(args.output_dir, 'tatoeba.{}-eng.tok.{}'.format(src_lang2, src_lang2))
+    tgt_tok_file = os.path.join(args.output_dir, 'tatoeba.{}-eng.tok.eng'.format(src_lang2))
     
     all_src_embeds = extract_embeddings(args, src_text_file, src_tok_file, None, lang=src_lang2)
     all_tgt_embeds = extract_embeddings(args, tgt_text_file, tgt_tok_file, None, lang=tgt_lang2)
@@ -458,7 +456,7 @@ def main():
     for i in [args.specific_layer]:
       x, y = all_src_embeds[i], all_tgt_embeds[i]
       predictions = similarity_search(x, y, args.embed_size, normalize=(args.dist == 'cosine'))
-      with open(os.path.join(args.output_dir, f'test_{src_lang2}_predictions.txt')) as fout:
+      with open(os.path.join(args.output_dir, f'test_{src_lang2}_predictions.txt'), 'w') as fout:
         for p in predictions:
           fout.write(str(p) + '\n')
           
