@@ -23,13 +23,12 @@ LANGS="ar,he,vi,id,jv,ms,tl,eu,ml,ta,te,af,nl,en,de,el,bn,hi,mr,ur,fa,fr,it,pt,e
 LC=""
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
-elif [ $MODEL == "xlm-mlm-100-1280" ]; then
+elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
   MODEL_TYPE="xlm"
   LC=" --do_lower_case"
-elif [ $MODEL == "xlm-roberta-large" ]; then
+elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
   MODEL_TYPE="xlmr"
 fi
-
 SAVE_DIR="$DATA_DIR/$TASK/${TASK}_processed_maxlen${MAXL}"
 mkdir -p $SAVE_DIR
 python3 $REPO/utils_preprocess.py \
