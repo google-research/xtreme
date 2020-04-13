@@ -479,7 +479,7 @@ def main():
   parser.add_argument("--train_langs", default="en", type=str,
             help="The languages in the training sets.")
   parser.add_argument("--log_file", type=str, default=None, help="log file")
-  parser.add_argument("--eval_patience", type=int, default=-1, help="whether to early stop during training")
+  parser.add_argument("--eval_patience", type=int, default=-1, help="wait N times of descreasing dev score before early stop during training")
   args = parser.parse_args()
 
   if os.path.exists(args.output_dir) and os.listdir(

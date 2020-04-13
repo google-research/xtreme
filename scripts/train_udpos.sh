@@ -55,6 +55,7 @@ python3 $REPO/third_party/run_tag.py \
   --output_dir $OUTPUT_DIR \
   --max_seq_length  $MAX_LENGTH \
   --num_train_epochs $NUM_EPOCHS \
+  --gradient_accumulation_steps $GRAD_ACC \
   --per_gpu_train_batch_size $BATCH_SIZE \
   --save_steps 500 \
   --seed 1 \
@@ -65,7 +66,6 @@ python3 $REPO/third_party/run_tag.py \
   --do_predict_dev \
   --evaluate_during_training \
   --predict_langs $LANGS \
-  --gradient_accumulation_steps $GRAD_ACC \
   --log_file $OUTPUT_DIR/train.log \
   --eval_all_checkpoints \
   --overwrite_output_dir \

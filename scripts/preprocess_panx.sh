@@ -38,7 +38,7 @@ python3 $REPO/utils_preprocess.py \
   --model_type $MODEL_TYPE \
   --max_len $MAXL \
   --output_dir $SAVE_DIR \
-  --languages $LANGS $LC
+  --languages $LANGS $LC >> $SAVE_DIR/preprocess.log
 if [ ! -f $SAVE_DIR/labels.txt ]; then
   cat $SAVE_DIR/*/*.${MODEL} | cut -f 2 | grep -v "^$" | sort | uniq > $SAVE_DIR/labels.txt
 fi

@@ -135,7 +135,6 @@ function download_bucc18 {
     echo "Successfully download data at $DIR/bucc2018" >> $DIR/download.log
 }
 
-
 function download_squad {
     echo "download squad"
     base_dir=$DIR/squad/

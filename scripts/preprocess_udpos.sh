@@ -39,7 +39,7 @@ python3 $REPO/utils_preprocess.py \
   --model_type $MODEL_TYPE \
   --max_len $MAXL \
   --output_dir $SAVE_DIR \
-  --languages $LANGS $LC #>> $SAVE_DIR/process.log
+  --languages $LANGS $LC >> $SAVE_DIR/process.log
 if [ ! -f $SAVE_DIR/labels.txt ]; then
   echo "create label"
   cat $SAVE_DIR/*/*.${MODEL} | cut -f 2 | grep -v "^$" | sort | uniq > $SAVE_DIR/labels.txt
