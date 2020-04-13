@@ -31,11 +31,11 @@ LC=""
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
   DIM=768
-elif [ $MODEL == "xlm-mlm-100-1280" ]; then
+elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
   MODEL_TYPE="xlm"
   DIM=1280
   LC=" --do_lower_case"
-elif [ $MODEL == "xlm-roberta-large" ]; then
+elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
   MODEL_TYPE="xlmr"
   DIM=1024
   NLAYER=24
@@ -53,7 +53,7 @@ for SL in fr ru zh de; do
       cut -f1 $FILE > $OUT/${SL}-${TL}.${sp}.${lg}.id
     done
   done
-  
+
   CP="candidates"
   python $REPO/third_party/run_retrieval.py \
     --model_type $MODEL_TYPE \
@@ -73,6 +73,6 @@ for SL in fr ru zh de; do
     --extract_embeds \
     --mine_bitext \
     --specific_layer 7 \
-    --dist cosine $LC 
-  
+    --dist cosine $LC
+
 done

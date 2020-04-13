@@ -36,7 +36,7 @@ elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
   MODEL_TYPE="xlmr"
 fi
 
-if [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-roberta-large" ]; then
+if [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-roberta-large" ]; the
   BATCH_SIZE=2
   GRAD_ACC=16
 else
@@ -45,7 +45,7 @@ else
 fi
 
 DATA_DIR=$DATA_DIR/$TASK/${TASK}_processed_maxlen${MAX_LENGTH}/
-OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}-LR${LR}-epoch${NUM_EPOCH}-MaxLen${MAXL}/"  
+OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}-LR${LR}-epoch${NUM_EPOCH}-MaxLen${MAX_LENGTH}/"
 mkdir -p $OUTPUT_DIR
 python3 $REPO/third_party/run_tag.py \
   --data_dir $DATA_DIR \
@@ -70,4 +70,3 @@ python3 $REPO/third_party/run_tag.py \
   --eval_all_checkpoints \
   --overwrite_output_dir \
   --save_only_best_checkpoint $LC
-

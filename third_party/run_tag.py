@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google AI Language Team Authors, 
+# Copyright 2018 The Google AI Language Team Authors,
 # The HuggingFace Inc. team, and The XTREME Benchmark Authors.
 # Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
@@ -38,7 +38,7 @@ from utils_tag import get_labels
 from utils_tag import read_examples_from_file
 
 from transformers import (
-  AdamW, 
+  AdamW,
   get_linear_schedule_with_warmup,
   WEIGHTS_NAME,
   BertConfig,
@@ -56,7 +56,7 @@ from xlm import XLMForTokenClassification
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum(
-  (tuple(conf.pretrained_config_archive_map.keys()) 
+  (tuple(conf.pretrained_config_archive_map.keys())
     for conf in (BertConfig, XLMConfig, XLMRobertaConfig)),
   ()
 )
@@ -148,7 +148,7 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
 
       if args.model_type != "distilbert":
         # XLM and RoBERTa don"t use segment_ids
-        inputs["token_type_ids"] = batch[2] if args.model_type in ["bert", "xlnet"] else None  
+        inputs["token_type_ids"] = batch[2] if args.model_type in ["bert", "xlnet"] else None
 
       if args.model_type == "xlm":
         inputs["langs"] = batch[4]
@@ -158,7 +158,7 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
 
       if args.n_gpu > 1:
         # mean() to average on multi-gpu parallel training
-        loss = loss.mean()  
+        loss = loss.mean()
       if args.gradient_accumulation_steps > 1:
         loss = loss / args.gradient_accumulation_steps
 
@@ -281,7 +281,7 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
 
       if args.n_gpu > 1:
         # mean() to average on multi-gpu parallel evaluating
-        tmp_eval_loss = tmp_eval_loss.mean()  
+        tmp_eval_loss = tmp_eval_loss.mean()
 
       eval_loss += tmp_eval_loss.item()
     nb_eval_steps += 1
@@ -325,10 +325,10 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
 
 
 def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode, lang, lang2id=None, few_shot=-1):
-  # Make sure only the first process in distributed training process  
+  # Make sure only the first process in distributed training process
   # the dataset, and the others will use the cache
   if args.local_rank not in [-1, 0] and not evaluate:
-    torch.distributed.barrier()  
+    torch.distributed.barrier()
 
   # Load data features from cache or dataset file
   cached_features_file = os.path.join(args.data_dir, "cached_{}_{}_{}_{}".format(mode, lang,
@@ -362,10 +362,10 @@ def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode, l
       logger.info("Saving features into cached file {}, len(features)={}".format(cached_features_file, len(features)))
       torch.save(features, cached_features_file)
 
-  # Make sure only the first process in distributed training process  
+  # Make sure only the first process in distributed training process
   # the dataset, and the others will use the cache
   if args.local_rank == 0 and not evaluate:
-    torch.distributed.barrier()  
+    torch.distributed.barrier()
 
   if few_shot > 0 and mode == 'train':
     logger.info("Original no. of examples = {}".format(len(features)))
@@ -398,7 +398,7 @@ def main():
             help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(ALL_MODELS))
   parser.add_argument("--output_dir", default=None, type=str, required=True,
             help="The output directory where the model predictions and checkpoints will be written.")
-  
+
   ## Other parameters
   parser.add_argument("--labels", default="", type=str,
             help="Path to a file containing all labels. If not specified, NER/POS labels are used.")
@@ -425,7 +425,7 @@ def main():
             help="Whether to run evaluation during training at each logging step.")
   parser.add_argument("--do_lower_case", action="store_true",
             help="Set this flag if you are using an uncased model.")
-  parser.add_argument("--few_shot", default=-1, type=int, 
+  parser.add_argument("--few_shot", default=-1, type=int,
             help="num of few-shot exampes")
 
   parser.add_argument("--per_gpu_train_batch_size", default=8, type=int,
@@ -499,7 +499,7 @@ def main():
   if args.local_rank == -1 or args.no_cuda:
     device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
     args.n_gpu = torch.cuda.device_count()
-  else:  
+  else:
   # Initializes the distributed backend which sychronizes nodes/GPUs
     torch.cuda.set_device(args.local_rank)
     device = torch.device("cuda", args.local_rank)
@@ -522,14 +522,14 @@ def main():
   # Prepare NER/POS task
   labels = get_labels(args.labels)
   num_labels = len(labels)
-  # Use cross entropy ignore index as padding label id 
+  # Use cross entropy ignore index as padding label id
   # so that only real label ids contribute to the loss later
   pad_token_label_id = CrossEntropyLoss().ignore_index
 
   # Load pretrained model and tokenizer
   # Make sure only the first process in distributed training loads model/vocab
   if args.local_rank not in [-1, 0]:
-    torch.distributed.barrier()  
+    torch.distributed.barrier()
 
   args.model_type = args.model_type.lower()
   config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
@@ -566,7 +566,7 @@ def main():
     global_step, tr_loss = train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lang2id)
     logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
-  # Saving best-practices: if you use default names for the model, 
+  # Saving best-practices: if you use default names for the model,
   # you can reload it using from_pretrained()
   if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
     # Create output directory if needed
@@ -577,7 +577,7 @@ def main():
     # They can then be reloaded using `from_pretrained()`
     # Take care of distributed/parallel training
     logger.info("Saving model checkpoint to %s", args.output_dir)
-    model_to_save = model.module if hasattr(model, "module") else model  
+    model_to_save = model.module if hasattr(model, "module") else model
     model_to_save.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
 
@@ -614,7 +614,7 @@ def main():
       if global_step:
         result = {"{}_{}".format(global_step, k): v for k, v in result.items()}
       results.update(result)
-    
+
     output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
     with open(output_eval_file, "w") as writer:
       for key in sorted(results.keys()):
@@ -627,7 +627,7 @@ def main():
     tokenizer = tokenizer_class.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case)
     model = model_class.from_pretrained(best_checkpoint)
     model.to(args.device)
-    
+
     output_test_results_file = os.path.join(args.output_dir, "test_results.txt")
     with open(output_test_results_file, "a") as result_writer:
       for lang in args.predict_langs.split(','):
@@ -645,14 +645,14 @@ def main():
         infile = os.path.join(args.data_dir, lang, "test.{}".format(args.model_name_or_path))
         idxfile = infile + '.idx'
         save_predictions(args, predictions, output_test_predictions_file, infile, idxfile)
- 
+
   # Predict dev set
   if args.do_predict_dev and args.local_rank in [-1, 0]:
     logger.info("Loading the best checkpoint from {}\n".format(best_checkpoint))
     tokenizer = tokenizer_class.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case)
     model = model_class.from_pretrained(best_checkpoint)
     model.to(args.device)
-    
+
     output_test_results_file = os.path.join(args.output_dir, "dev_results.txt")
     with open(output_test_results_file, "w") as result_writer:
       for lang in args.predict_langs.split(','):
@@ -696,4 +696,3 @@ def save_predictions(args, predictions, output_file, text_file, idx_file, output
 
 if __name__ == "__main__":
   main()
-

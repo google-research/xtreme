@@ -46,7 +46,7 @@ fi
 
 SAVE_DIR="${OUT_DIR}/${TASK}/${MODEL}-LR${LR}-epoch${EPOCH}-MaxLen${MAXL}/"
 mkdir -p $SAVE_DIR
-  
+
 python $PWD/third_party/run_classify.py \
   --model_type $MODEL_TYPE \
   --model_name_or_path $MODEL \
@@ -72,4 +72,4 @@ python $PWD/third_party/run_classify.py \
   --predict_languages $LANGS \
   --save_only_best_checkpoint $LC \
   --eval_test_set 
-  
+
