@@ -30,7 +30,6 @@ if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
 elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
   MODEL_TYPE="xlm"
-  LC=" --do_lower_case"
 elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
   MODEL_TYPE="xlmr"
 fi
