@@ -39,7 +39,7 @@ bash scripts/download_data.sh
 
 The evaluation setting in XTREME is zero-shot cross-lingual transfer from English. We fine-tune models that were pre-trained on multilingual data on the labelled data of each XTREME task in English. Each fine-tuned model is then applied to the test data of the same task in other languages to obtain predictions.
 
-For every task, we provide a single script `scripts/train.sh` that fine-tunes pre-trained models implemented in the [Transformers] repo. To fine-tune a different model, simply pass different `MODEL` argument to the script with the corresponding model, where the current supported models are `bert-base-multilingual-cased`, `xlm-mlm-100-1280` and `xlm-roberta-large`.
+For every task, we provide a single script `scripts/train.sh` that fine-tunes pre-trained models implemented in the [https://github.com/huggingface/transformers Transformers] repo. To fine-tune a different model, simply pass different `MODEL` argument to the script with the corresponding model, where the current supported models are `bert-base-multilingual-cased`, `xlm-mlm-100-1280` and `xlm-roberta-large`.
 
 ## Universal dependencies part-of-speech tagging
 
@@ -104,7 +104,7 @@ python evaluate.py --prediction_folder [path] --label_folder [path]
 
 # Paper
 
-If you use our benchmark or the code in this repo, please cite our paper.
+If you use our benchmark or the code in this repo, please cite our paper `\cite{hu2020xtreme}`.
 ```
 @article{hu2020xtreme,
       author    = {Junjie Hu and Sebastian Ruder and Aditya Siddhant and Graham Neubig and Orhan Firat and Melvin Johnson},
@@ -114,5 +114,83 @@ If you use our benchmark or the code in this repo, please cite our paper.
       year      = {2020},
       archivePrefix = {arXiv},
       eprint    = {2003.11080}
+}
+```
+Please also consider including a note similar to the one stated below to make sure to cite all the individual dataset in your paper.
+We experiment on the XTREME benchmark `\cite{hu2020xtreme}`, a composite benchmark for multi-lingual learning consisting of data from the XNLI `\cite{Conneau2018xnli}`, PAWS-X `\cite{Yang2019paws-x}`, UD-POS `\cite{nivre2018universal}`, Wikiann NER `\cite{Pan2017}`, XQuAD `\cite{artetxe2019cross}`, MLQA `\cite{Lewis2019mlqa}`, TyDiQA-GoldP `\cite{Clark2020tydiqa}`, BUCC 2018 `\cite{zweigenbaum2018overview}`, Tatoeba `\cite{Artetxe2019massively}` tasks. We provide their BibTex information as follows.
+```
+@inproceedings{Conneau2018xnli,
+    title = "{XNLI}: Evaluating Cross-lingual Sentence Representations",
+    author = "Conneau, Alexis  and
+      Rinott, Ruty  and
+      Lample, Guillaume  and
+      Williams, Adina  and
+      Bowman, Samuel  and
+      Schwenk, Holger  and
+      Stoyanov, Veselin",
+    booktitle = "Proceedings of EMNLP 2018",
+    year = "2018",
+    pages = "2475--2485",
+}
+
+@inproceedings{Yang2019paws-x,
+    title = "{PAWS-X}: A Cross-lingual Adversarial Dataset for Paraphrase Identification",
+    author = "Yang, Yinfei  and
+      Zhang, Yuan  and
+      Tar, Chris  and
+      Baldridge, Jason",
+    booktitle = "Proceedings of EMNLP 2019",
+    year = "2019",
+    pages = "3685--3690",
+}
+
+@article{nivre2018universal,
+  title={Universal Dependencies 2.2},
+  author={Nivre, Joakim and Abrams, Mitchell and Agi{\'c}, {\v{Z}}eljko and Ahrenberg, Lars and Antonsen, Lene and Aranzabe, Maria Jesus and Arutie, Gashaw and Asahara, Masayuki and Ateyah, Luma and Attia, Mohammed and others},
+  year={2018}
+}
+
+@inproceedings{Pan2017,
+author = {Pan, Xiaoman and Zhang, Boliang and May, Jonathan and Nothman, Joel and Knight, Kevin and Ji, Heng},
+booktitle = {Proceedings of ACL 2017},
+pages = {1946--1958},
+title = {{Cross-lingual name tagging and linking for 282 languages}},
+year = {2017}
+}
+
+@inproceedings{artetxe2019cross,
+author = {Artetxe, Mikel and Ruder, Sebastian and Yogatama, Dani},
+booktitle = {Proceedings of ACL 2020},
+title = {{On the Cross-lingual Transferability of Monolingual Representations}},
+year = {2020}
+}
+
+@article{Lewis2019mlqa,
+author = {Lewis, Patrick and Oğuz, Barlas and Rinott, Ruty and Riedel, Sebastian and Schwenk, Holger},
+journal = {arXiv preprint arXiv:1910.07475},
+title = {{MLQA: Evaluating Cross-lingual Extractive Question Answering}},
+year = {2019}
+}
+
+@inproceedings{Clark2020tydiqa,
+author = {Jonathan H. Clark and Eunsol Choi and Michael Collins and Dan Garrette and Tom Kwiatkowski and Vitaly Nikolaev and Jennimaria Palomaki},
+booktitle = {Transactions of the Association of Computational Linguistics},
+title = {{TyDi QA: A Benchmark for Information-Seeking Question Answering in Typologically Diverse Languages}},
+year = {2020}
+}
+
+@inproceedings{zweigenbaum2018overview,
+  title={Overview of the third BUCC shared task: Spotting parallel sentences in comparable corpora},
+  author={Zweigenbaum, Pierre and Sharoff, Serge and Rapp, Reinhard},
+  booktitle={Proceedings of 11th Workshop on Building and Using Comparable Corpora},
+  pages={39--42},
+  year={2018}
+}
+
+@article{Artetxe2019massively,
+author = {Artetxe, Mikel and Schwenk, Holger},
+journal = {Transactions of the ACL 2019},
+title = {{Massively Multilingual Sentence Embeddings for Zero-Shot Cross-Lingual Transfer and Beyond}},
+year = {2019}
 }
 ```
