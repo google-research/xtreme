@@ -116,7 +116,8 @@ If you use our benchmark or the code in this repo, please cite our paper `\cite{
       eprint    = {2003.11080}
 }
 ```
-Please also consider including a note similar to the one stated below to make sure to cite all the individual dataset in your paper.
+Please consider including a note similar to the one below to make sure to cite all the individual datasets in your paper.
+
 We experiment on the XTREME benchmark `\cite{hu2020xtreme}`, a composite benchmark for multi-lingual learning consisting of data from the XNLI `\cite{Conneau2018xnli}`, PAWS-X `\cite{Yang2019paws-x}`, UD-POS `\cite{nivre2018universal}`, Wikiann NER `\cite{Pan2017}`, XQuAD `\cite{artetxe2019cross}`, MLQA `\cite{Lewis2019mlqa}`, TyDiQA-GoldP `\cite{Clark2020tydiqa}`, BUCC 2018 `\cite{zweigenbaum2018overview}`, Tatoeba `\cite{Artetxe2019massively}` tasks. We provide their BibTex information as follows.
 ```
 @inproceedings{Conneau2018xnli,
