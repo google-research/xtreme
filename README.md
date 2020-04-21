@@ -39,7 +39,7 @@ bash scripts/download_data.sh
 
 The evaluation setting in XTREME is zero-shot cross-lingual transfer from English. We fine-tune models that were pre-trained on multilingual data on the labelled data of each XTREME task in English. Each fine-tuned model is then applied to the test data of the same task in other languages to obtain predictions.
 
-For every task, we provide a single script `scripts/train.sh` that fine-tunes pre-trained models implemented in the [https://github.com/huggingface/transformers Transformers] repo. To fine-tune a different model, simply pass different `MODEL` argument to the script with the corresponding model, where the current supported models are `bert-base-multilingual-cased`, `xlm-mlm-100-1280` and `xlm-roberta-large`.
+For every task, we provide a single script `scripts/train.sh` that fine-tunes pre-trained models implemented in the [Transformers](https://github.com/huggingface/transformers) repo. To fine-tune a different model, simply pass different `MODEL` argument to the script with the corresponding model, where the current supported models are `bert-base-multilingual-cased`, `xlm-mlm-100-1280` and `xlm-roberta-large`.
 
 ## Universal dependencies part-of-speech tagging
 
