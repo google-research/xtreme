@@ -20,7 +20,7 @@ https://conda.anaconda.org/anaconda/linux-64/libsodium-1.0.16-h1bed415_0.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/libuuid-1.0.3-h1bed415_2.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/libxcb-1.13-h1bed415_1.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/ncurses-6.1-he6710b0_1.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/openssl-1.1.1-h7b6447c_0.tar.bz2
+https://conda.anaconda.org/anaconda/linux-64/openssl-1.1.1g-h7b6447c_0.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/pcre-8.43-he6710b0_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/xz-5.2.4-h14c3975_4.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/zlib-1.2.11-h7b6447c_3.tar.bz2
