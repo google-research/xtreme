@@ -102,11 +102,13 @@ def panx_preprocess(args):
         items = l.strip().split('\t')
         if len(items) == 2:
           label = items[1].strip()
-          token = items[0].split(':')[1].strip()
-          if 'test' in infile:
-            fout.write(f'{token}\n')
-          else:
-            fout.write(f'{token}\t{label}\n')
+          idx = items[0].find(':')
+          if idx != -1:
+            token = items[0][idx+1:].strip()
+            if 'test' in infile:
+              fout.write(f'{token}\n')
+            else:
+              fout.write(f'{token}\t{label}\n')
         else:
           fout.write('\n')
   if not os.path.exists(args.output_dir):
