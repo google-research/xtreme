@@ -88,7 +88,8 @@ function download_panx {
     echo "Download panx NER dataset"
     if [ -f $DIR/AmazonPhotos.zip ]; then
         base_dir=$DIR/panx_dataset/
-        unzip -qq $DIR/AmazonPhotos.zip -d $DIR/
+	mkdir -p $base_dir
+        unzip -qq -j $DIR/AmazonPhotos.zip -d $base_dir/
         cd $base_dir
         langs=(ar he vi id jv ms tl eu ml ta te af nl en de el bn hi mr ur fa fr it pt es bg ru ja ka ko th sw yo my zh kk tr et fi hu)
         for lg in ${langs[@]}; do
