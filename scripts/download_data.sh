@@ -88,13 +88,14 @@ function download_panx {
     echo "Download panx NER dataset"
     if [ -f $DIR/AmazonPhotos.zip ]; then
         base_dir=$DIR/panx_dataset/
-        unzip -qq $DIR/AmazonPhotos.zip -d $DIR/
+        unzip -qq $DIR/AmazonPhotos.zip -d $base_dir
         cd $base_dir
         langs=(ar he vi id jv ms tl eu ml ta te af nl en de el bn hi mr ur fa fr it pt es bg ru ja ka ko th sw yo my zh kk tr et fi hu)
         for lg in ${langs[@]}; do
             tar xzf $base_dir/${lg}.tar.gz
             for f in dev test train; do mv $base_dir/$f $base_dir/${lg}-${f}; done
         done
+        cd ..
         python $REPO/utils_preprocess.py \
             --data_dir $base_dir \
             --output_dir $DIR/panx \
