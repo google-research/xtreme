@@ -94,7 +94,7 @@ bash scripts/train.sh [MODEL] tatoeba
 # Leaderboard Submission
 
 ## Submissions
-To submit your predicitons to [**XTREME**](https://ai.google.com/research/xtreme), please create one single folder that contains 9 sub-folders named after all the tasks, i.e., `udpos`, `panx`, `xnli`, `pawsx`, `xquad`, `mlqa`, `tydiqa`, `bucc2018`, `tatoeba`. Inside each sub-folder, create a file containing the prediction label of the test set for all languages, and name the file using the format `test-{language}.{extension}` where `language` indicates the 2-character language code, and `extension` is `json` for QA tasks and `tsv` for other tasks. 
+To submit your predicitons to [**XTREME**](https://sites.research.google/xtreme), please create one single folder that contains 9 sub-folders named after all the tasks, i.e., `udpos`, `panx`, `xnli`, `pawsx`, `xquad`, `mlqa`, `tydiqa`, `bucc2018`, `tatoeba`. Inside each sub-folder, create a file containing the prediction label of the test set for all languages, and name the file using the format `test-{language}.{extension}` where `language` indicates the 2-character language code, and `extension` is `json` for QA tasks and `tsv` for other tasks. 
 
 ## Evaluation
 We will compare your submissions with our label files using the following command:
