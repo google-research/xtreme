@@ -3,7 +3,7 @@
 [**Tasks**](#tasks-and-languages) | [**Download**](#download-the-data) |
 [**Baselines**](#build-a-baseline-system) |
 [**Leaderboard**](#leaderboard-submission) |
-[**Website**](https://ai.google.com/research/xtreme) |
+[**Website**](https://sites.research.google/xtreme) |
 [**Paper**](https://arxiv.org/pdf/2003.11080.pdf)
 
 This repository contains information about XTREME, code for downloading data, and
