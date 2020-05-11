@@ -1,4 +1,4 @@
-# coding=utf-8
+#!/bin/bash
 # Copyright 2020 Google and DeepMind.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#!/bin/bash
+
 REPO=$PWD
 MODEL=${1:-bert-base-multilingual-cased}
 DATA_DIR=${2:-"$REPO/download/"}
@@ -29,6 +29,7 @@ elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]
 elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xom-roberta-base" ]; then
   MODEL_TYPE="xlmr"
 fi
+
 SAVE_DIR="$DATA_DIR/$TASK/${TASK}_processed_maxlen${MAXL}"
 mkdir -p $SAVE_DIR
 python3 $REPO/utils_preprocess.py \
@@ -38,7 +39,7 @@ python3 $REPO/utils_preprocess.py \
   --model_type $MODEL_TYPE \
   --max_len $MAXL \
   --output_dir $SAVE_DIR \
-  --languages $LANGS $LC >> $SAVE_DIR/preprocess.log
+  --languages $LANGS $LC
 if [ ! -f $SAVE_DIR/labels.txt ]; then
   cat $SAVE_DIR/*/*.${MODEL} | cut -f 2 | grep -v "^$" | sort | uniq > $SAVE_DIR/labels.txt
 fi

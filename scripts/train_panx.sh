@@ -1,4 +1,4 @@
-# coding=utf-8
+#!/bin/bash
 # Copyright 2020 Google and DeepMind.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#!/bin/bash
+
 REPO=$PWD
 MODEL=${1:-bert-base-multilingual-cased}
 GPU=${2:-0}
@@ -55,7 +55,6 @@ python $REPO/third_party/run_tag.py \
   --output_dir $OUTPUT_DIR \
   --max_seq_length  $MAX_LENGTH \
   --num_train_epochs $NUM_EPOCHS \
-  --gradient_accumulation_steps $GRAD_ACC \
   --per_gpu_train_batch_size $BATCH_SIZE \
   --per_gpu_eval_batch_size 32 \
   --save_steps 1000 \
@@ -66,6 +65,7 @@ python $REPO/third_party/run_tag.py \
   --do_predict \
   --predict_langs $LANGS \
   --train_langs en \
+  --gradient_accumulation_steps $GRAD_ACC \
   --log_file $OUTPUT_DIR/train.log \
   --eval_all_checkpoints \
   --eval_patience -1 \

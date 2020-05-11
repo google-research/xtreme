@@ -1,4 +1,4 @@
-# coding=utf-8
+#!/bin/bash
 # Copyright 2020 Google and DeepMind.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#!/bin/bash
+
 # Script to train a model on SQuAD v1.1 or the English TyDiQA-GoldP train data.
 
 REPO=$PWD
@@ -30,8 +30,9 @@ if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
 elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
   MODEL_TYPE="xlm"
+  LC=" --do_lower_case"
 elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
-  MODEL_TYPE="xlm-roberta"
+  MODEL_TYPE="xlmr"
 fi
 
 # Model path where trained model should be stored

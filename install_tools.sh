@@ -1,4 +1,4 @@
-# coding=utf-8
+#!/bin/bash
 # Copyright 2020 Google and DeepMind.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 REPO=$PWD
 LIB=$REPO/third_party
 mkdir -p $LIB
@@ -25,7 +26,6 @@ source activate xtreme
 cd $LIB
 git clone https://github.com/huggingface/transformers
 cd transformers
-git checkout cefd51c50cc08be8146c1151544495968ce8f2ad
 pip install .
 cd $LIB
 

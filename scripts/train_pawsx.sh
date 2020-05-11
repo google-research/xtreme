@@ -1,4 +1,4 @@
-# coding=utf-8
+#!/bin/bash
 # Copyright 2020 Google and DeepMind.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#!/bin/bash
+
 REPO=$PWD
 MODEL=${1:-bert-base-multilingual-cased}
 GPU=${2:-0}
@@ -27,6 +27,7 @@ EPOCH=5
 MAXL=128
 LANGS="de,en,es,fr,ja,ko,zh"
 LC=""
+
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
 elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
@@ -71,5 +72,5 @@ python $PWD/third_party/run_classify.py \
   --log_file 'train.log' \
   --predict_languages $LANGS \
   --save_only_best_checkpoint $LC \
-  --eval_test_set 
+  --eval_test_set
 

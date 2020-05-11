@@ -1,4 +1,4 @@
-# coding=utf-8
+#!/bin/bash
 # Copyright 2020 Google and DeepMind.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#!/bin/bash
+
 REPO=$PWD
 MODEL=${1:-bert-base-multilingual-cased}
 DATA_DIR=${2:-"$REPO/download/"}
@@ -39,7 +39,7 @@ python3 $REPO/utils_preprocess.py \
   --model_type $MODEL_TYPE \
   --max_len $MAXL \
   --output_dir $SAVE_DIR \
-  --languages $LANGS $LC >> $SAVE_DIR/process.log
+  --languages $LANGS $LC #>> $SAVE_DIR/process.log
 if [ ! -f $SAVE_DIR/labels.txt ]; then
   echo "create label"
   cat $SAVE_DIR/*/*.${MODEL} | cut -f 2 | grep -v "^$" | sort | uniq > $SAVE_DIR/labels.txt
