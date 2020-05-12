@@ -27,7 +27,6 @@ EPOCH=5
 MAXL=128
 LANGS="ar,bg,de,el,en,es,fr,hi,ru,sw,th,tr,ur,vi,zh"
 LC=""
-
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
 elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
@@ -57,8 +56,8 @@ python $PWD/third_party/run_classify.py \
   --do_eval \
   --do_predict \
   --data_dir $DATA_DIR/${TASK} \
-  --gradient_accumulation_steps $BATCH_SIZE \
-  --per_gpu_train_batch_size $GRAD_ACC \
+  --gradient_accumulation_steps $GRAD_ACC \
+  --per_gpu_train_batch_size $BATCH_SIZE \
   --learning_rate $LR \
   --num_train_epochs $EPOCH \
   --max_seq_length $MAXL \

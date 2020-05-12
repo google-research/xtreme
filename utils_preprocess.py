@@ -31,7 +31,6 @@ TOKENIZERS = {
   'xlmr': XLMRobertaTokenizer,
 }
 
-
 def panx_tokenize_preprocess(args):
   def _preprocess_one_file(infile, outfile, idxfile, tokenizer, max_len):
     if not os.path.exists(infile):
@@ -103,11 +102,13 @@ def panx_preprocess(args):
         items = l.strip().split('\t')
         if len(items) == 2:
           label = items[1].strip()
-          token = items[0].split(':')[1].strip()
-          if 'test' in infile:
-            fout.write(f'{token}\n')
-          else:
-            fout.write(f'{token}\t{label}\n')
+          idx = items[0].find(':')
+          if idx != -1:
+            token = items[0][idx+1:].strip()
+            if 'test' in infile:
+              fout.write(f'{token}\n')
+            else:
+              fout.write(f'{token}\t{label}\n')
         else:
           fout.write('\n')
   if not os.path.exists(args.output_dir):
@@ -118,7 +119,6 @@ def panx_preprocess(args):
       infile = os.path.join(args.data_dir, f'{lg}-{split}')
       outfile = os.path.join(args.output_dir, f'{split}-{lg}.tsv')
       _process_one_file(infile, outfile)
-
 
 def udpos_tokenize_preprocess(args):
   def _preprocess_one_file(infile, outfile, idxfile, tokenizer, max_len):
@@ -180,7 +180,6 @@ def udpos_tokenize_preprocess(args):
       else:
         _preprocess_one_file(infile, outfile, idxfile, tokenizer, args.max_len)
         print(f'finish preprocessing {outfile}')
-
 
 def udpos_preprocess(args):
   def _read_one_file(file):
@@ -283,7 +282,6 @@ def udpos_preprocess(args):
     for sub in ['tsv']:
       _write_files(data, args.output_dir, lg, sub)
 
-
 def pawsx_preprocess(args):
   def _preprocess_one_file(infile, outfile, remove_label=False):
     data = []
@@ -317,7 +315,6 @@ def pawsx_preprocess(args):
       outfile = os.path.join(args.output_dir, "{}-{}.tsv".format(split, lang))
       _preprocess_one_file(infile, outfile, remove_label=(split == 'test'))
       print(f'finish preprocessing {outfile}')
-
 
 def xnli_preprocess(args):
   def _preprocess_file(infile, output_dir, split):

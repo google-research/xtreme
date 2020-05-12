@@ -29,7 +29,6 @@ elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]
 elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xom-roberta-base" ]; then
   MODEL_TYPE="xlmr"
 fi
-
 SAVE_DIR="$DATA_DIR/$TASK/${TASK}_processed_maxlen${MAXL}"
 mkdir -p $SAVE_DIR
 python3 $REPO/utils_preprocess.py \
@@ -39,7 +38,7 @@ python3 $REPO/utils_preprocess.py \
   --model_type $MODEL_TYPE \
   --max_len $MAXL \
   --output_dir $SAVE_DIR \
-  --languages $LANGS $LC
+  --languages $LANGS $LC >> $SAVE_DIR/preprocess.log
 if [ ! -f $SAVE_DIR/labels.txt ]; then
   cat $SAVE_DIR/*/*.${MODEL} | cut -f 2 | grep -v "^$" | sort | uniq > $SAVE_DIR/labels.txt
 fi
