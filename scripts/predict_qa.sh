@@ -56,7 +56,7 @@ for lang in ${langs[@]}; do
     TEST_FILE=${DIR}/tydiqa-goldp-v1.1-dev/tydiqa.$lang.dev.json
   fi
 
-  CUDA_VISIBLE_DEVICES=${CUDA} python third_party/run_squad.py \
+  CUDA_VISIBLE_DEVICES=${GPU} python third_party/run_squad.py \
     --model_type ${MODEL_TYPE} \
     --model_name_or_path ${MODEL_PATH} \
     --do_eval \
