@@ -1,4 +1,4 @@
-# coding=utf-8
+#!/bin/bash
 # Copyright 2020 Google and DeepMind.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#!/bin/bash
+
 # Script to obtain predictions using a trained model on XQuAD, TyDi QA, and MLQA.
 REPO=$PWD
 MODEL=${1:-bert-base-multilingual-cased}
@@ -56,7 +56,7 @@ for lang in ${langs[@]}; do
     TEST_FILE=${DIR}/tydiqa-goldp-v1.1-dev/tydiqa.$lang.dev.json
   fi
 
-  CUDA_VISIBLE_DEVICES=${CUDA} python third_party/run_squad.py \
+  CUDA_VISIBLE_DEVICES=${GPU} python third_party/run_squad.py \
     --model_type ${MODEL_TYPE} \
     --model_name_or_path ${MODEL_PATH} \
     --do_eval \

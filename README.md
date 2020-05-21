@@ -3,7 +3,7 @@
 [**Tasks**](#tasks-and-languages) | [**Download**](#download-the-data) |
 [**Baselines**](#build-a-baseline-system) |
 [**Leaderboard**](#leaderboard-submission) |
-[**Website**](https://ai.google.com/research/xtreme) |
+[**Website**](https://sites.research.google/xtreme) |
 [**Paper**](https://arxiv.org/pdf/2003.11080.pdf)
 
 This repository contains information about XTREME, code for downloading data, and
@@ -35,11 +35,15 @@ The next step is to download the data. To this end, first create a `download` fo
 bash scripts/download_data.sh
 ```
 
+Note that in order to prevent accidental evaluation on the test sets while running experiments,
+we remove labels of the test data during pre-processing and change the order of the test sentences
+for cross-lingual sentence retrieval.
+
 # Build a baseline system
 
 The evaluation setting in XTREME is zero-shot cross-lingual transfer from English. We fine-tune models that were pre-trained on multilingual data on the labelled data of each XTREME task in English. Each fine-tuned model is then applied to the test data of the same task in other languages to obtain predictions.
 
-For every task, we provide a single script `scripts/train.sh` that fine-tunes pre-trained models implemented in the [Transformers](https://github.com/huggingface/transformers) repo. To fine-tune a different model, simply pass different `MODEL` argument to the script with the corresponding model, where the current supported models are `bert-base-multilingual-cased`, `xlm-mlm-100-1280` and `xlm-roberta-large`.
+For every task, we provide a single script `scripts/train.sh` that fine-tunes pre-trained models implemented in the [Transformers](https://github.com/huggingface/transformers) repo. To fine-tune a different model, simply pass a different `MODEL` argument to the script with the corresponding model. The current supported models are `bert-base-multilingual-cased`, `xlm-mlm-100-1280` and `xlm-roberta-large`.
 
 ## Universal dependencies part-of-speech tagging
 
@@ -71,7 +75,7 @@ bash scripts/train.sh [MODEL] xnli
 
 ## XQuAD, MLQA, TyDiQA-GoldP question answering
 
-For question answering, we use the data from the XQuAD, MLQA, and TyDiQA-Gold Passage datasets. 
+For question answering, we use the data from the XQuAD, MLQA, and TyDiQA-Gold Passage datasets.
 For XQuAD and MLQA, the model should be trained on the English SQuAD training set. For TyDiQA-Gold Passage, the model is trained on the English TyDiQA-GoldP training set. Using the following command, you can first fine-tune a pre-trained multilingual model on the corresponding English training data, and then you can obtain predictions on the test data of all tasks.
 ```
 bash scripts/train.sh [MODEL] [xquad,mlqa,tydiqa]
@@ -79,14 +83,14 @@ bash scripts/train.sh [MODEL] [xquad,mlqa,tydiqa]
 
 ## BUCC sentence retrieval
 
-For cross-lingual sentence retrieval, we use the data from the Building and Using Parallel Corpora (BUCC) shared task. As the models are not trained for this task but the representations of the pre-trained models are directly used to obtain similarity judgements, you can directly apply the model to obtain predictions on the test data of the task: 
+For cross-lingual sentence retrieval, we use the data from the Building and Using Parallel Corpora (BUCC) shared task. As the models are not trained for this task but the representations of the pre-trained models are directly used to obtain similarity judgements, you can directly apply the model to obtain predictions on the test data of the task:
 ```
 bash scripts/train.sh [MODEL] bucc2018
 ```
 
 ## Tatoeba sentence retrieval
 
-The second cross-lingual sentence retrieval dataset we use, is the Tatoeba dataset. Similarly to BUCC, you can directly apply the model to obtain predictions on the test data of the task: 
+The second cross-lingual sentence retrieval dataset we use is the Tatoeba dataset. Similarly to BUCC, you can directly apply the model to obtain predictions on the test data of the task:
 ```
 bash scripts/train.sh [MODEL] tatoeba
 ```
@@ -94,7 +98,7 @@ bash scripts/train.sh [MODEL] tatoeba
 # Leaderboard Submission
 
 ## Submissions
-To submit your predicitons to [**XTREME**](https://ai.google.com/research/xtreme), please create one single folder that contains 9 sub-folders named after all the tasks, i.e., `udpos`, `panx`, `xnli`, `pawsx`, `xquad`, `mlqa`, `tydiqa`, `bucc2018`, `tatoeba`. Inside each sub-folder, create a file containing the prediction label of the test set for all languages, and name the file using the format `test-{language}.{extension}` where `language` indicates the 2-character language code, and `extension` is `json` for QA tasks and `tsv` for other tasks. 
+To submit your predicitons to [**XTREME**](https://sites.research.google/xtreme), please create one single folder that contains 9 sub-folders named after all the tasks, i.e., `udpos`, `panx`, `xnli`, `pawsx`, `xquad`, `mlqa`, `tydiqa`, `bucc2018`, `tatoeba`. Inside each sub-folder, create a file containing the predicted labels of the test set for all languages. Name the file using the format `test-{language}.{extension}` where `language` indicates the 2-character language code, and `extension` is `json` for QA tasks and `tsv` for other tasks.
 
 ## Evaluation
 We will compare your submissions with our label files using the following command:
