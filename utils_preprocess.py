@@ -97,8 +97,11 @@ def panx_tokenize_preprocess(args):
 
 def panx_preprocess(args):
   def _process_one_file(infile, outfile):
-    with open(infile, 'r') as fin, open(outfile, 'w') as fout:
-      for l in fin:
+    lines = open(infile, 'r').readlines()
+    if lines[-1].strip() == '':
+      lines = lines[:-1]
+    with open(outfile, 'w') as fout:
+      for l in lines:
         items = l.strip().split('\t')
         if len(items) == 2:
           label = items[1].strip()
