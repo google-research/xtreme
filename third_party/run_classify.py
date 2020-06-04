@@ -377,7 +377,7 @@ def evaluate(args, model, tokenizer, split='train', language='en', lang2id=None,
         sentences = sentences.astype(int).tolist()
         sentences = [[w for w in s if w != pad_token_id]for s in sentences]
         sentences = [tokenizer.convert_ids_to_tokens(s) for s in sentences]
-        fout.write('Prediction\tLabel\tSentences\n')
+        #fout.write('Prediction\tLabel\tSentences\n')
         for p, l, s in zip(list(preds), list(out_label_ids), sentences):
           s = ' '.join(s)
           if label_list:
@@ -755,7 +755,12 @@ def main():
 
   # Evaluation
   results = {}
-  best_checkpoint = args.init_checkpoint if args.init_checkpoint else args.output_dir
+  if args.init_checkpoint:
+    best_checkpoint = args.init_checkpoint
+  elif os.path.exists(os.path.join(args.output_dir, 'checkpoint-best')):
+    best_checkpoint = os.path.join(args.output_dir, 'checkpoint-best')
+  else:
+    best_checkpoint = args.output_dir
   best_score = 0
   if args.do_eval and args.local_rank in [-1, 0]:
     tokenizer = tokenizer_class.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case)
@@ -796,7 +801,8 @@ def main():
     with open(output_predict_file, 'a') as writer:
       writer.write('======= Predict using the model from {} for {}:\n'.format(best_checkpoint, args.test_split))
       for language in args.predict_languages.split(','):
-        result = evaluate(args, model, tokenizer, split=args.test_split, language=language, lang2id=lang2id, prefix='best_checkpoint')
+        output_file = os.path.join(args.output_dir, 'test-{}.tsv'.format(language))
+        result = evaluate(args, model, tokenizer, split=args.test_split, language=language, lang2id=lang2id, prefix='best_checkpoint', output_file=output_file, label_list=label_list)
         writer.write('{}={}\n'.format(language, result['acc']))
         logger.info('{}={}'.format(language, result['acc']))
         total += result['num']
@@ -804,7 +810,7 @@ def main():
       writer.write('total={}\n'.format(total_correct / total))
 
   if args.do_predict_dev:
-    tokenizer = tokenizer_class.from_pretrained(args.init_checkpoint, do_lower_case=args.do_lower_case)
+    tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path if args.model_name_or_path else best_checkpoint, do_lower_case=args.do_lower_case)
     model = model_class.from_pretrained(args.init_checkpoint)
     model.to(args.device)
     output_predict_file = os.path.join(args.output_dir, 'dev_results')
@@ -812,7 +818,7 @@ def main():
     with open(output_predict_file, 'w') as writer:
       writer.write('======= Predict using the model from {}:\n'.format(args.init_checkpoint))
       for language in args.predict_languages.split(','):
-        output_file = os.path.join(args.output_dir, 'dev-{}-prediction.tsv'.format(language))
+        output_file = os.path.join(args.output_dir, 'dev-{}.tsv'.format(language))
         result = evaluate(args, model, tokenizer, split='dev', language=language, lang2id=lang2id, prefix='best_checkpoint', output_file=output_file, label_list=label_list)
         writer.write('{}={}\n'.format(language, result['acc']))
         total += result['num']
