@@ -4,7 +4,8 @@
 [**Baselines**](#build-a-baseline-system) |
 [**Leaderboard**](#leaderboard-submission) |
 [**Website**](https://sites.research.google/xtreme) |
-[**Paper**](https://arxiv.org/pdf/2003.11080.pdf)
+[**Paper**](https://arxiv.org/pdf/2003.11080.pdf) |
+[**Translations**](https://console.cloud.google.com/storage/browser/xtreme_translations)
 
 This repository contains information about XTREME, code for downloading data, and
 implementations of baseline systems for the benchmark.
@@ -105,6 +106,18 @@ We will compare your submissions with our label files using the following comman
 ```
 python evaluate.py --prediction_folder [path] --label_folder [path]
 ```
+
+## Translations
+
+As part of training translate-train and translate-test baselines we have automatically translated
+English training sets to other languages and tests sets to English. Translations are available for
+the following datasets: SQuAD v1.1 (only train and dev), MLQA, PAWS-X, TyDiQA-GoldP, XNLI, and XQuAD.
+
+For XNLI and XQuAD, we have furthermore created pseudo test sets by automatically translating the English test set to the remaining
+languages in XTREME so that test data for all 40 languages is available. Note that
+these translations are noisy and should not be treated as ground truth.
+
+All translations are available [here](https://console.cloud.google.com/storage/browser/xtreme_translations).
 
 # Paper
 
