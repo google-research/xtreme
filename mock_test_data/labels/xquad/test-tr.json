@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "\ufeffPanthers savunmas\u0131 ligdeki derecesi alt\u0131nc\u0131 s\u0131rada olarak sadece 308 say\u0131 b\u0131rakt\u0131, ayn\u0131 zamanda NFL'de 24 topu kapma ile ligin ba\u015f\u0131n\u0131 \u00e7ekmesi ve d\u00f6rt Pro Bowl se\u00e7meleri ile \u00f6v\u00fcn\u00e7 duydu. Pro Bowl orta \u00e7izgi savunmac\u0131s\u0131 Kawann Short, tak\u0131m\u0131 11'le birlikte sack ederken, ayn\u0131 zamanda \u00fc\u00e7 oyuncuyu d\u00fc\u015f\u00fcrme ve iki yeniden savunmaya zorlad\u0131. Yan hakem Mario Addison, 6\u00bd sack ekledi. Panthers hatt\u0131nda ayr\u0131ca, sadece 9 ba\u015flang\u0131\u00e7ta 5 sack eden u\u00e7 \u00e7izgi savunmac\u0131s\u0131 Kony Ealy ile birlikte 136 kez ile NFL'nin aktif kariyer sack lideri ve 5 kez profesyonel bir top at\u0131c\u0131s\u0131 olan Jared Allen \u00f6ne \u00e7\u0131kmaktad\u0131r. Arkalar\u0131nda, Panthers'lerin \u00fc\u00e7 adet ikinci hat savunma oyuncusundan ikisi de Pro Bowl'da oynamak i\u00e7in se\u00e7ildi: Thomas Davis ve Luke Kuechly. Davis, d\u00f6rd\u00fcnde mecburi oyuncuyu d\u00fc\u015f\u00fcrme ve d\u00f6rt topu kapma olmak \u00fczere 5\u00bd sack etmeyi bir araya getirirken, Kuechly top \u00e7almalarda (118) iki mecburi oyuncuyu d\u00fc\u015f\u00fcrme ve kendi ba\u015f\u0131na d\u00f6rt pas\u0131n\u0131 kesme ile tak\u0131ma \u00f6nc\u00fcl\u00fck etti. Carolina\u2019n\u0131n ikincisi olarak g\u00f6sterilen Pro Bowl g\u00fcvenli\u011fi i\u00e7in kariyerinin en y\u00fckse\u011fi olarak 7 top kapma ile tak\u0131m\u0131 s\u00fcr\u00fckleyen Kurt Coleman\u2019a ve 88 top \u00e7alma say\u0131s\u0131yla ve Pro Bowl k\u00f6\u015fe savunmac\u0131s\u0131 sezon boyunca bir kapal\u0131 k\u00f6\u015fe i\u00e7inde geli\u015fen ikisi kale \u00e7izgisini ge\u00e7i\u015ften d\u00f6nen d\u00f6rt top kapma geli\u015ftiren Josh Norman'a rol verdi.",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "answer_start": 66,
+                  "text": "308"
+                }
+              ],
+              "id": "56beb4343aeaaa14008c925b",
+              "question": "Panthers savunmas\u0131 ka\u00e7 say\u0131 b\u0131rakm\u0131\u015ft\u0131r?"
+            },
+            {
+              "answers": [
+                {
+                  "answer_start": 480,
+                  "text": "136"
+                }
+              ],
+              "id": "56beb4343aeaaa14008c925c",
+              "question": "Jared Allen'\u0131n ka\u00e7 tane kariyer sack edi\u015fi vard\u0131r?"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "1.1"
+}

@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "Kama kijana, Silva aliingizwa kwenye shule iliyo jirani ya Campo Grande ya Rio - kwa usawa shule ya kulisha kwa Fluminense. Alipokuwa na umri wa miaka 14, Silva alimvutia kocha wa Fluminense Maurinho wakati wa mchezo wa kirafiki huko Xer\u00e9m. Alipewa jaribio fupi, ambapo alipewa nafasi ya kiungo wa kujihami. Silva alipewa fursa ya kucheza alipokuwa mdogo. Mwaka wa 1999, akiwa na umri wa miaka 15, Silva aliulizwa Madureira, Olaria na Flamengo; alikataliwa katika kila klabu, jaribio la Flamengo likiwa gumu sana kwa sababu hata hakukuwa na mafunzo ya makocha.",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "answer_start": 365,
+                  "text": "1999"
+                }
+              ],
+              "id": "swahili--8211684794284159625-4",
+              "question": "Je,Thiago Silva alianza kucheza soka mwaka upi?"
+            }
+          ]
+        }
+      ],
+      "title": "Thiago Silva"
+    }
+  ],
+  "version": "TyDiQA-GoldP-1.1-for-SQuAD-1.1"
+}

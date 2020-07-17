@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "The Panthers defense gave up just 308 points, ranking sixth in the league, while also leading the NFL in interceptions with 24 and boasting four Pro Bowl selections. Pro Bowl defensive tackle Kawann Short led the team in sacks with 11, while also forcing three fumbles and recovering two. Fellow lineman Mario Addison added 6\u00bd sacks. The Panthers line also featured veteran defensive end Jared Allen, a 5-time pro bowler who was the NFL's active career sack leader with 136, along with defensive end Kony Ealy, who had 5 sacks in just 9 starts. Behind them, two of the Panthers three starting linebackers were also selected to play in the Pro Bowl: Thomas Davis and Luke Kuechly. Davis compiled 5\u00bd sacks, four forced fumbles, and four interceptions, while Kuechly led the team in tackles (118) forced two fumbles, and intercepted four passes of his own. Carolina's secondary featured Pro Bowl safety Kurt Coleman, who led the team with a career high seven interceptions, while also racking up 88 tackles and Pro Bowl cornerback Josh Norman, who developed into a shutdown corner during the season and had four interceptions, two of which were returned for touchdowns.",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "answer_start": 34,
+                  "text": "308"
+                }
+              ],
+              "id": "56beb4343aeaaa14008c925b",
+              "question": "How many points did the Panthers defense surrender?"
+            },
+            {
+              "answers": [
+                {
+                  "answer_start": 470,
+                  "text": "136"
+                }
+              ],
+              "id": "56beb4343aeaaa14008c925c",
+              "question": "How many career sacks did Jared Allen have?"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "1.1"
+}

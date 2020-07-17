@@ -99,7 +99,7 @@ bash scripts/train.sh [MODEL] tatoeba
 # Leaderboard Submission
 
 ## Submissions
-To submit your predicitons to [**XTREME**](https://sites.research.google/xtreme), please create one single folder that contains 9 sub-folders named after all the tasks, i.e., `udpos`, `panx`, `xnli`, `pawsx`, `xquad`, `mlqa`, `tydiqa`, `bucc2018`, `tatoeba`. Inside each sub-folder, create a file containing the predicted labels of the test set for all languages. Name the file using the format `test-{language}.{extension}` where `language` indicates the 2-character language code, and `extension` is `json` for QA tasks and `tsv` for other tasks.
+To submit your predicitons to [**XTREME**](https://sites.research.google/xtreme), please create one single folder that contains 9 sub-folders named after all the tasks, i.e., `udpos`, `panx`, `xnli`, `pawsx`, `xquad`, `mlqa`, `tydiqa`, `bucc2018`, `tatoeba`. Inside each sub-folder, create a file containing the predicted labels of the test set for all languages. Name the file using the format `test-{language}.{extension}` where `language` indicates the 2-character language code, and `extension` is `json` for QA tasks and `tsv` for other tasks. You can see an example of the folder structure in `mock_test_data/predictions`.
 
 ## Evaluation
 We will compare your submissions with our label files using the following command:
@@ -107,7 +107,7 @@ We will compare your submissions with our label files using the following comman
 python evaluate.py --prediction_folder [path] --label_folder [path]
 ```
 
-## Translations
+# Translations
 
 As part of training translate-train and translate-test baselines we have automatically translated
 English training sets to other languages and tests sets to English. Translations are available for
@@ -135,7 +135,7 @@ If you use our benchmark or the code in this repo, please cite our paper `\cite{
 ```
 Please consider including a note similar to the one below to make sure to cite all the individual datasets in your paper.
 
-We experiment on the XTREME benchmark `\cite{hu2020xtreme}`, a composite benchmark for multi-lingual learning consisting of data from the XNLI `\cite{Conneau2018xnli}`, PAWS-X `\cite{Yang2019paws-x}`, UD-POS `\cite{nivre2018universal}`, Wikiann NER `\cite{Pan2017}`, XQuAD `\cite{artetxe2019cross}`, MLQA `\cite{Lewis2019mlqa}`, TyDiQA-GoldP `\cite{Clark2020tydiqa}`, BUCC 2018 `\cite{zweigenbaum2018overview}`, Tatoeba `\cite{Artetxe2019massively}` tasks. We provide their BibTex information as follows.
+We experiment on the XTREME benchmark `\cite{hu2020xtreme}`, a composite benchmark for multi-lingual learning consisting of data from the XNLI `\cite{Conneau2018xnli}`, PAWS-X `\cite{Yang2019paws-x}`, UD-POS `\cite{nivre2018universal}`, Wikiann NER `\cite{Pan2017}`, XQuAD `\cite{artetxe2020cross}`, MLQA `\cite{Lewis2020mlqa}`, TyDiQA-GoldP `\cite{Clark2020tydiqa}`, BUCC 2018 `\cite{zweigenbaum2018overview}`, Tatoeba `\cite{Artetxe2019massively}` tasks. We provide their BibTex information as follows.
 ```
 @inproceedings{Conneau2018xnli,
     title = "{XNLI}: Evaluating Cross-lingual Sentence Representations",
@@ -176,18 +176,18 @@ title = {{Cross-lingual name tagging and linking for 282 languages}},
 year = {2017}
 }
 
-@inproceedings{artetxe2019cross,
+@inproceedings{artetxe2020cross,
 author = {Artetxe, Mikel and Ruder, Sebastian and Yogatama, Dani},
 booktitle = {Proceedings of ACL 2020},
 title = {{On the Cross-lingual Transferability of Monolingual Representations}},
 year = {2020}
 }
 
-@article{Lewis2019mlqa,
+@inproceedings{Lewis2020mlqa,
 author = {Lewis, Patrick and Oğuz, Barlas and Rinott, Ruty and Riedel, Sebastian and Schwenk, Holger},
-journal = {arXiv preprint arXiv:1910.07475},
+booktitle = {Proceedings of ACL 2020},
 title = {{MLQA: Evaluating Cross-lingual Extractive Question Answering}},
-year = {2019}
+year = {2020}
 }
 
 @inproceedings{Clark2020tydiqa,

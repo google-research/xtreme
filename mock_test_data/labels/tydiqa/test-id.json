@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "Kolumbus bukanlah orang pertama yang tiba di Amerika, yang ia dapati sudah diduduki. Ia juga bukan orang Eropa pertama yang sampai ke benua itu karena sekarang telah diakui secara meluas bahwa orang-orang Viking dari Eropa Utara telah berkunjung ke Amerika Utara pada abad ke 11 dan mendirikan koloni L'Anse aux Meadows untuk jangka waktu singkat. Terdapat perkiraan bahwa pelayar yang tidak dikenali pernah melawat ke Amerika sebelum Kolumbus dan membekalkannya dengan sumber untuk kejayaannya. Terdapat juga banyak teori mengenai ekspedisi ke Amerika oleh berbagai orang sepanjang masa itu.",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "answer_start": 193,
+                  "text": "orang-orang Viking dari Eropa Utara"
+                }
+              ],
+              "id": "indonesian-1906590851264221380-1",
+              "question": "Siapakah yang menemuka benua Amerika ?"
+            }
+          ]
+        }
+      ],
+      "title": "Kristoforus Kolumbus"
+    }
+  ],
+  "version": "TyDiQA-GoldP-1.1-for-SQuAD-1.1"
+}

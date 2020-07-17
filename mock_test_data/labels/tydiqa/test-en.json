@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "Wound care encourages and speeds wound healing via cleaning and protection from reinjury or infection. Depending on each patient's needs, it can range from the simplest first aid to entire nursing specialties such as wound, ostomy, and continence nursing and burn center care.",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "answer_start": 0,
+                  "text": "Wound care"
+                }
+              ],
+              "id": "english--3215621880858840488-2",
+              "question": "What is a way to increase your wound healing speed?"
+            }
+          ]
+        }
+      ],
+      "title": "Wound healing"
+    }
+  ],
+  "version": "TyDiQA-GoldP-1.1-for-SQuAD-1.1"
+}

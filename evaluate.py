@@ -27,18 +27,20 @@ from third_party.evaluate_mlqa import evaluate as mlqa_eval
 def read_tag(file):
   labels = []
   example = []
-  for line in open(file, 'r'):
-    line = line.strip()
-    if line != '':
-      example.append(line)
-    else:
-      labels.append(example)
-      example = []
+  with open(file, 'r') as f:
+    for line in f:
+      line = line.strip()
+      if line:
+        example.append(line)
+      else:
+        labels.append(example)
+        example = []
   return labels
 
 
 def read_label(file):
-  return [l.strip() for l in open(file)]
+  with open(file, 'r') as f:
+    return [l.strip() for l in f]
 
 
 def read_squad(file):
@@ -195,7 +197,6 @@ def evaluate(prediction_folder, label_folder, verbose=False):
       if verbose:
         avg_result = ', '.join(['{}={:.1f}'.format(k, v) for k, v in score.items() if k.startswith('avg')])
         print('- Evaluate {}:\t{}'.format(task, avg_result))
-
 
   # Display logic:
   overall_scores = {}

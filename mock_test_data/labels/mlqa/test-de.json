@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "Am 27. M\u00e4rz um 12:36 Uhr warfen ein oder zwei ann\u00e4hernd gleichzeitige phreatische Eruptionen (explosionsartige Dampfaustritte des Grundwassers) Asche und Ger\u00f6ll aus dem Inneren des Gipfelkraters und erzeugten neben einer etwa 1800 Meter hohen Asches\u00e4ule auch einen neuen, etwa 76 Meter durchmessenden Krater. Zum gleichen Zeitpunkt bildete sich im Gipfelbereich ein etwa 4900 Meter langes, nach Osten verlaufendes Netz aus Rissen. Weitere Erdsto\u00dfwellen und eine Reihe von Dampfexplosionen schleuderten Vulkanasche zwischen 3050 und 3350 Meter hoch \u00fcber den Krater hinaus. Der Gro\u00dfteil dieser Asche ging in einem Umkreis zwischen f\u00fcnf und 19 Kilometern nieder; einzelne Niederschl\u00e4ge wurden jedoch noch 240 Kilometer s\u00fcdlich in Bend, Oregon, und 285 Kilometer \u00f6stlich in Spokane, Washington, festgestellt. Aufgrund der durch Schneeschmelze drohenden \u00dcberflutungen und der durch Erdst\u00f6\u00dfe ausgel\u00f6sten Erdrutsche wurde ab dem 27. M\u00e4rz eine Sicherheitszone im Umkreis von rund 25 Kilometern um den Vulkan errichtet. Die in diesem Gebiet lebenden Menschen wurden evakuiert.",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "text": "3050 und 3350 Meter",
+                  "answer_start": 523
+                }
+              ],
+              "id": "c076d4b0a1967805a45e7ab1e247e3a0739d4850",
+              "question": "Wie viele Meter \u00fcber den Krater war die Dampfexplosion? "
+            }
+          ]
+        }
+      ],
+      "title": "Ausbruch des Mount St. Helens 1980"
+    }
+  ],
+  "version": 1.0
+}

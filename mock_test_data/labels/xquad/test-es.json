@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "\ufeffLos Panthers, que adem\u00e1s de liderar las intercepciones de la NFL con 24 y contar con cuatro jugadores de la Pro Bowl, cedieron solo 308 puntos en defensa y se sit\u00faan en el sexto lugar de la liga. Kawann Short, tacle defensivo de la Pro Bowl, lider\u00f3 al equipo con 11 capturas, 3 balones sueltos forzados y 2 recuperaciones. A su vez, el liniero Mario Addison, consigui\u00f3 6 capturas y media. En la l\u00ednea de los Panthers, tambi\u00e9n destac\u00f3 como ala defensiva el veterano Jared Allen \u20155 veces jugador de la Pro Bowl y que fue el l\u00edder, en activo, de capturas de la NFL con 136\u2015 junto con el tambi\u00e9n ala defensiva Kony Ealy, que lleva 5 capturas en solo 9 partidos como titular. Detr\u00e1s de ellos, Thomas Davis y Luke Kuechly, dos de los tres apoyadores titulares que tambi\u00e9n han sido seleccionados para jugar la Pro Bowl. Davis se hizo con 5 capturas y media, 4 balones sueltos forzados y 4 intercepciones, mientras que Kuechly lider\u00f3 al equipo en derribos (118), forz\u00f3 2 balones sueltos e intercept\u00f3 4 pases. La secundaria de Carolina cont\u00f3, por un lado, con la seguridad del jugador de la Pro Bowl Kurt Coleman que asumi\u00f3 las riendas del equipo gracias a sus 7 intercepciones (nunca hab\u00eda conseguido tantas hasta ahora) y a sus 88 derribos, y, por otro lado, con el esquinero Josh Norman, tambi\u00e9n jugador de la Pro Bowl y que a pesar de haber estado de capa ca\u00edda durante la temporada, consigui\u00f3 4 intercepciones, de las cuales dos se convirtieron en touchdowns.",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "answer_start": 133,
+                  "text": "308"
+                }
+              ],
+              "id": "56beb4343aeaaa14008c925b",
+              "question": "\u00bfCu\u00e1ntos puntos dejaron escapar en defensa los Panthers?"
+            },
+            {
+              "answers": [
+                {
+                  "answer_start": 567,
+                  "text": "136"
+                }
+              ],
+              "id": "56beb4343aeaaa14008c925c",
+              "question": "\u00bfCu\u00e1ntas capturas ha conseguido Jared Allen en su carrera?"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "1.1"
+}

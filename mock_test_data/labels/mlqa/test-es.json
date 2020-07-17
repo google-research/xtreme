@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "Tras la erupci\u00f3n, las emisiones de material pirocl\u00e1stico que se produjeron desde la brecha creada por el derrumbe fueron en su mayor\u00eda de origen magm\u00e1tico, y en menor proporci\u00f3n de fragmentos de rocas volc\u00e1nicas preexistentes. Los dep\u00f3sitos resultantes formaron unas estructuras en forma de abanico que segu\u00edan un patr\u00f3n de hojas, lenguas y l\u00f3bulos superpuestos entre s\u00ed. Durante la erupci\u00f3n del 18 de mayo se produjeron por lo menos 17 emisiones de flujo pirocl\u00e1stico separadas en el tiempo, cuyos vol\u00famenes de agregaci\u00f3n rondaban los 208 millones de m3.",
+          "qas": [
+            {
+              "question": "\u00bfCu\u00e1l fue la apariencia de los dep\u00f3sitos que quedaron de ese deslizamiento de tierra?",
+              "answers":
+              [
+                {
+                  "text": "unas estructuras en forma de abanico que segu\u00edan un patr\u00f3n de hojas, lenguas y l\u00f3bulos",
+                  "answer_start": 262
+                }
+              ],
+              "id": "b77c037b331e06542272669766df3b9515366b57"
+            }
+          ]
+        }
+      ],
+      "title": "Erupci\u00f3n del Monte Santa Helena de 1980"
+    }
+  ],
+  "version": 1.0
+}

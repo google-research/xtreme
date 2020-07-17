@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "\u0110\u1ed9i th\u1ee7 c\u1ee7a Panthers ch\u1ec9 thua 308 \u0111i\u1ec3m, \u0111\u1ee9ng th\u1ee9 s\u00e1u trong gi\u1ea3i \u0111\u1ea5u, \u0111\u1ed3ng th\u1eddi d\u1eabn \u0111\u1ea7u NFL v\u1ec1 s\u1ed1 l\u1ea7n \u0111o\u1ea1t b\u00f3ng (intercept) v\u1edbi 24 l\u1ea7n v\u00e0 t\u1ef1 h\u00e0o v\u1edbi b\u1ed1n l\u1ef1a ch\u1ecdn Pro Bowl. Ng\u01b0\u1eddi h\u00fac (tackle) trong \u0111\u1ed9i th\u1ee7 tham gia Pro Bowl, Kawann Short d\u1eabn \u0111\u1ea7u \u0111\u1ed9i v\u1ec1 s\u1ed1 l\u1ea7n v\u1eadt ng\u00e3 (sack) v\u1edbi 11 l\u1ea7n, \u0111\u1ed3ng th\u1eddi h\u00fac v\u0103ng b\u00f3ng (fumble) 3 l\u1ea7n v\u00e0 l\u1ea5y l\u1ea1i \u0111\u01b0\u1ee3c b\u00f3ng (recover) 2 l\u1ea7n. \u0110\u1ed3ng nghi\u1ec7p lineman Mario Addison \u0111\u00e3 th\u00eam 6\u00bd l\u1ea7n v\u1eadt ng\u00e3. \u0110\u1ed9i h\u00ecnh Panthers c\u0169ng c\u00f3 ng\u01b0\u1eddi ti\u1ec1n v\u1ec7 (defensive end) k\u1ef3 c\u1ef1u Jared Allen, ng\u01b0\u1eddi tham gia Pro Bowl 5 l\u1ea7n, d\u1eabn \u0111\u1ea7u v\u1ec1 s\u1ed1 l\u1ea7n v\u1eadt ng\u00e3 trong s\u1ef1 nghi\u1ec7p NFL v\u1edbi 136 l\u1ea7n, c\u00f9ng v\u1edbi ng\u01b0\u1eddi ti\u1ec1n v\u1ec7 Kony Ealy, ng\u01b0\u1eddi \u0111\u00e3 c\u00f3 5 l\u1ea7n v\u1eadt ng\u00e3 sau 9 l\u1ea7n xu\u1ea5t ph\u00e1t. Ph\u00eda sau h\u1ecd, hai trong s\u1ed1 ba ng\u01b0\u1eddi h\u00e0ng v\u1ec7 (linebacker) xu\u1ea5t ph\u00e1t c\u1ee7a Panthers c\u0169ng \u0111\u01b0\u1ee3c ch\u1ecdn \u0111\u1ec3 ch\u01a1i trong Pro Bowl: Thomas Davis v\u00e0 Luke Kuechly. Davis \u0111\u00e3 c\u00f3 5\u00bd l\u1ea7n v\u1eadt ng\u00e3, 4 l\u1ea7n h\u00fac v\u0103ng b\u00f3ng v\u00e0 4 l\u1ea7n \u0111o\u1ea1t b\u00f3ng, trong khi Kuechly d\u1eabn \u0111\u1ea7u \u0111\u1ed9i v\u1ec1 s\u1ed1 l\u1ea7n h\u00fac (118 l\u1ea7n), 2 l\u1ea7n h\u00fac v\u0103ng b\u00f3ng v\u00e0 \u0111o\u1ea1t b\u00f3ng t\u1eeb c\u00e1c \u0111\u01b0\u1eddng chuy\u1ec1n 4 l\u1ea7n. \u0110\u1ed9i h\u00ecnh ph\u00eda sau c\u1ee7a Carolina c\u00f3 h\u1eadu-h\u1eadu v\u1ec7 (safety) tham gia Pro Bowl Kurt Coleman, ng\u01b0\u1eddi d\u1eabn \u0111\u1ea7u \u0111\u1ed9i b\u00f3ng v\u1edbi b\u1ea3y l\u1ea7n \u0111o\u1ea1t b\u00f3ng trong s\u1ef1 nghi\u1ec7p, \u0111\u1ed3ng th\u1eddi c\u00f3 88 c\u00fa h\u00fac b\u00f3ng v\u00e0 trung v\u1ec7 (cornerback) tham gia Pro Bowl Josh Norman, ng\u01b0\u1eddi \u0111\u00e3 ph\u00e1t tri\u1ec3n th\u00e0nh m\u1ed9t shutdown corner trong m\u00f9a gi\u1ea3i v\u00e0 c\u00f3 b\u1ed1n l\u1ea7n \u0111o\u1ea1t b\u00f3ng, hai trong s\u1ed1 \u0111\u00f3 \u0111\u00e3 tr\u1edf th\u00e0nh touchdown.",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "answer_start": 30,
+                  "text": "308"
+                }
+              ],
+              "id": "56beb4343aeaaa14008c925b",
+              "question": "\u0110\u1ed9i th\u1ee7 Panthers \u0111\u00e3 thua bao nhi\u00eau \u0111i\u1ec3m?"
+            },
+            {
+              "answers": [
+                {
+                  "answer_start": 577,
+                  "text": "136"
+                }
+              ],
+              "id": "56beb4343aeaaa14008c925c",
+              "question": "Jared Allen c\u00f3 bao nhi\u00eau l\u1ea7n v\u1eadt ng\u00e3 trong s\u1ef1 nghi\u1ec7p?"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "1.1"
+}

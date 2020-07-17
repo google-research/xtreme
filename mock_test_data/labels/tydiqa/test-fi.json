@@ -1,0 +1,29 @@
+{
+  "data": [
+    {
+      "paragraphs": [
+        {
+          "context": "Vanhin tunnettu lasilaatu on alkali\u00adkalkki\u00adlasi, jota valmistetaan soodan, hiekan ja kalkin seoksesta. Egyptiss\u00e4 siit\u00e4 valmistettiin lasitettuja kivi\u00adhelmi\u00e4 jo noin vuonna 4000 eaa.[8] Jo varhain havaittiin, ett\u00e4 lasi voitiin saada v\u00e4rilliseksi lis\u00e4\u00e4m\u00e4ll\u00e4 siihen eri malmeja. T\u00e4llaista v\u00e4rillist\u00e4 lasia k\u00e4ytettiin keramiikan lasitukseen sek\u00e4 jalokivien j\u00e4ljitelmiin.[8]",
+          "qas": [
+            {
+              "answers": [
+                {
+                  "answer_start": 165,
+                  "text": "vuonna 4000 eaa"
+                },
+                {
+                  "answer_start": 172,
+                  "text": "4000 eaa"
+                }
+              ],
+              "id": "finnish--267686407665346253-29",
+              "question": "Kauanko lasia on valmistettu?"
+            }
+          ]
+        }
+      ],
+      "title": "Lasi"
+    }
+  ],
+  "version": "TyDiQA-GoldP-1.1-for-SQuAD-1.1"
+}

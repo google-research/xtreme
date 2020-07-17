@@ -144,8 +144,6 @@ function download_squad {
     mkdir -p $base_dir && cd $base_dir
     wget https://raw.githubusercontent.com/rajpurkar/SQuAD-explorer/master/dataset/train-v1.1.json -q --show-progress
     wget https://raw.githubusercontent.com/rajpurkar/SQuAD-explorer/master/dataset/dev-v1.1.json -q --show-progress
-    # Download the SQuAD evaluation script (used for XQuAD and TyDiQA-GoldP)
-    wget https://raw.githubusercontent.com/allenai/bi-att-flow/master/squad/evaluate-v1.1.py -q --show-progress
     echo "Successfully downloaded data at $DIR/squad"  >> $DIR/download.log
 }
 
@@ -168,8 +166,6 @@ function download_mlqa {
     wget https://dl.fbaipublicfiles.com/MLQA/${zip_file} -q --show-progress
     unzip -qq ${zip_file}
     rm ${zip_file}
-    # Download the MLQA evaluation script
-    wget https://raw.githubusercontent.com/facebookresearch/MLQA/master/mlqa_evaluation_v1.py -q --show-progress
     python $REPO/utils_preprocess.py --data_dir $base_dir/MLQA_V1/test --output_dir $base_dir --task mlqa
     echo "Successfully downloaded data at $DIR/mlqa" >> $DIR/download.log
 }
