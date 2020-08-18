@@ -23,8 +23,6 @@ import sys
 import faiss
 import tempfile
 import numpy as np
-import faiss
-
 
 def knn(x, y, k, use_gpu, dist='cosine'):
   return knnGPU(x, y, k) if use_gpu else knnCPU(x, y, k, dist)
