@@ -267,7 +267,7 @@ def udpos_preprocess(args):
       continue
 
     data = {k: [] for k in ['train', 'dev', 'test']}
-    for f in files:
+    for f in sorted(files):
       if f.endswith('conll'):
         file = os.path.join(root, f)
         examples = _read_one_file(file)
