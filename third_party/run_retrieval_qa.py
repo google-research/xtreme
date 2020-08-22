@@ -14,7 +14,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Finetuning the library models for question-answering on SQuAD (DistilBERT, Bert, XLM, XLNet)."""
+"""Finetuning the models on retrieval tasks (Retrieval SQuAD). Currently supports BERT.
+
+Forked from run_squad.py.
+"""
 
 
 import argparse
@@ -33,42 +36,12 @@ from tqdm import tqdm, trange
 from transformers import (
   WEIGHTS_NAME,
   AdamW,
-  AlbertConfig,
-  AlbertForQuestionAnswering,
-  AlbertTokenizer,
   BertConfig,
-  BertForQuestionAnswering,
   BertTokenizer,
-  DistilBertConfig,
-  DistilBertForQuestionAnswering,
-  DistilBertTokenizer,
-  XLMConfig,
-  XLMForQuestionAnswering,
-  XLMTokenizer,
-  XLNetConfig,
-  XLNetForQuestionAnswering,
-  XLNetTokenizer,
   get_linear_schedule_with_warmup,
-  XLMRobertaTokenizer,
-  # BertForSequenceRetrieval
 )
 
-from transformers.data.metrics.squad_metrics import (
-  compute_predictions_log_probs,
-  compute_predictions_logits,
-  squad_evaluate,
-)
-
-from xlm_roberta import XLMRobertaForQuestionAnswering, XLMRobertaConfig
-
-from processors.squad import (
-  SquadResult,
-  SquadV1Processor,
-  SquadV2Processor,
-  squad_convert_examples_to_features
-)
-
-from processors.squad_retrieval import (
+from processors.lareqa import (
   RetrievalSquadResult,
   RetrievalSquadProcessor,
   retrieval_squad_convert_examples_to_features
@@ -83,13 +56,10 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum(
-  (tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig)),
+  (tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig,)),
   (),
 )
 
-import torch
-from torch import nn
-from torch.nn import CrossEntropyLoss, MSELoss
 from transformers.modeling_bert import BertPreTrainedModel, BertModel
 
 class BertForSequenceRetrieval(BertPreTrainedModel):
@@ -97,9 +67,12 @@ class BertForSequenceRetrieval(BertPreTrainedModel):
         super().__init__(config)
 
         self.bert = BertModel(config)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size,
-                              self.config.num_labels)
+        self.dropout = torch.nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = torch.nn.Linear(config.hidden_size,
+                                          self.config.num_labels)
+        def normalized_cls_token(cls_token):
+          return torch.nn.functional.normalize(cls_token, p=2, dim=1)
+        self.normalized_cls_token = normalized_cls_token
         self.init_weights()
     
     def forward(
@@ -113,6 +86,7 @@ class BertForSequenceRetrieval(BertPreTrainedModel):
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
+        inference=False
         ):
         outputs_a = self.bert(
             q_input_ids,
@@ -122,6 +96,10 @@ class BertForSequenceRetrieval(BertPreTrainedModel):
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
             )
+        if inference:
+          # In inference mode, only use the first tower to get the encodings.
+          return (self.normalized_cls_token(outputs_a[1]),)
+
         outputs_b = self.bert(
             a_input_ids,
             attention_mask=a_attention_mask,
@@ -130,33 +108,22 @@ class BertForSequenceRetrieval(BertPreTrainedModel):
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
             )
-        def normalized_cls_token(cls_token):
-            return nn.functional.normalize(cls_token, p=2, dim=1)
-        a_encodings = normalized_cls_token(outputs_a[1])
-        b_encodings = normalized_cls_token(outputs_b[1])
+
+        a_encodings = self.normalized_cls_token(outputs_a[1])
+        b_encodings = self.normalized_cls_token(outputs_b[1])
         similarity = torch.matmul(a_encodings, torch.transpose(b_encodings, 0, 1))
         batch_size = list(a_encodings.size())[0]
-        # labels = torch.eye(batch_size)
         labels = torch.arange(0,batch_size)
         logit_scale = 100.0  # TODO (make a trainable variable)
         logits = similarity * logit_scale
-        loss = CrossEntropyLoss()(logits, labels)
+        loss = torch.nn.CrossEntropyLoss()(logits, labels)
         outputs = (loss, ) + (a_encodings, b_encodings)
         return outputs
     
 
 MODEL_CLASSES = {
-  "bert": (BertConfig, BertForQuestionAnswering, BertTokenizer),
-  "xlnet": (XLNetConfig, XLNetForQuestionAnswering, XLNetTokenizer),
-  "xlm": (XLMConfig, XLMForQuestionAnswering, XLMTokenizer),
-  "distilbert": (DistilBertConfig, DistilBertForQuestionAnswering, DistilBertTokenizer),
-  "albert": (AlbertConfig, AlbertForQuestionAnswering, AlbertTokenizer),
-  "xlm-roberta": (XLMRobertaConfig, XLMRobertaForQuestionAnswering, XLMRobertaTokenizer),
   "bert-retrieval": (BertConfig, BertForSequenceRetrieval, BertTokenizer)
 }
-
-
-    
 
 def set_seed(args):
   random.seed(args.seed)
@@ -283,16 +250,16 @@ def train(args, train_dataset, model, tokenizer):
         "q_attention_mask": batch[1],
         "q_token_type_ids": None if args.model_type in ["xlm", "xlm-roberta", "distilbert"] else batch[2],
         "a_input_ids": batch[3],
-        "a_attention_mask": batch[5],
+        "a_attention_mask": batch[4],
         "a_token_type_ids": None if args.model_type in ["xlm", "xlm-roberta", "distilbert"] else batch[5],
       }
 
-    #   if args.model_type in ["xlnet", "xlm"]:
-    #     inputs.update({"cls_index": batch[5], "p_mask": batch[6]})
-    #     if args.version_2_with_negative:
-    #       inputs.update({"is_impossible": batch[7]})
-    #   if args.model_type == "xlm":
-    #     inputs["langs"] = batch[7]
+      if args.model_type in ["xlnet", "xlm"]:
+        raise NotImplementedError()
+        # inputs.update({"cls_index": batch[5], "p_mask": batch[6]})
+      if args.model_type == "xlm":
+        raise NotImplementedError()
+        # inputs["langs"] = batch[7]
       outputs = model(**inputs)
       # model outputs are always tuple in transformers (see doc)
       loss = outputs[0]
@@ -392,106 +359,45 @@ def evaluate(args, model, tokenizer, prefix="", language='en', lang2id=None):
 
     with torch.no_grad():
       inputs = {
-        "input_ids": batch[0],
-        "attention_mask": batch[1],
-        "token_type_ids": None if args.model_type in ["xlm", "distilbert", "xlm-roberta"] else batch[2],
+        "q_input_ids": batch[0],
+        "q_attention_mask": batch[1],
+        "q_token_type_ids": None if args.model_type in ["xlm", "xlm-roberta", "distilbert"] else batch[2],
+        "a_input_ids": batch[3],
+        "a_attention_mask": batch[4],
+        "a_token_type_ids": None if args.model_type in ["xlm", "xlm-roberta", "distilbert"] else batch[5],
       }
-      example_indices = batch[3]
+      example_indices = batch[6]
 
       # XLNet and XLM use more arguments for their predictions
       if args.model_type in ["xlnet", "xlm"]:
-        inputs.update({"cls_index": batch[4], "p_mask": batch[5]})
+        raise NotImplementedError()
+        # inputs.update({"cls_index": batch[4], "p_mask": batch[5]})
       if args.model_type == "xlm":
-        inputs["langs"] = batch[6]
+        raise NotImplementedError()
+        # inputs["langs"] = batch[6]
 
       outputs = model(**inputs)
 
     for i, example_index in enumerate(example_indices):
       eval_feature = features[example_index.item()]
       unique_id = int(eval_feature.unique_id)
-
-      output = [to_list(output[i]) for output in outputs]
-
-      # Some models (XLNet, XLM) use 5 arguments for their predictions, while the other "simpler"
-      # models only use two.
-      if len(output) >= 5:
-        start_logits = output[0]
-        start_top_index = output[1]
-        end_logits = output[2]
-        end_top_index = output[3]
-        cls_logits = output[4]
-
-        result = SquadResult(
-          unique_id,
-          start_logits,
-          end_logits,
-          start_top_index=start_top_index,
-          end_top_index=end_top_index,
-          cls_logits=cls_logits,
-        )
-
-      else:
-        start_logits, end_logits = output
-        result = SquadResult(unique_id, start_logits, end_logits)
-
+      # output = [to_list(output[i]) for output in outputs]
+      result = RetrievalSquadResult(unique_id=unique_id,
+                                    q_encoding=np.array(to_list(outputs[1])),
+                                    a_encoding=np.array(to_list(outputs[2])))
       all_results.append(result)
 
   evalTime = timeit.default_timer() - start_time
   logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(dataset))
 
-  # Compute predictions
-  output_prediction_file = os.path.join(args.output_dir, "predictions_{}_{}.json".format(language, prefix))
-  output_nbest_file = os.path.join(args.output_dir, "nbest_predictions_{}_{}.json".format(language, prefix))
-
-  if args.version_2_with_negative:
-    output_null_log_odds_file = os.path.join(args.output_dir, "null_odds_{}.json".format(prefix))
-  else:
-    output_null_log_odds_file = None
-
-  # XLNet and XLM use a more complex post-processing procedure
-  if args.model_type in ["xlnet", "xlm"]:
-    start_n_top = model.config.start_n_top if hasattr(model, "config") else model.module.config.start_n_top
-    end_n_top = model.config.end_n_top if hasattr(model, "config") else model.module.config.end_n_top
-
-    predictions = compute_predictions_log_probs(
-      examples,
-      features,
-      all_results,
-      args.n_best_size,
-      args.max_answer_length,
-      output_prediction_file,
-      output_nbest_file,
-      output_null_log_odds_file,
-      start_n_top,
-      end_n_top,
-      args.version_2_with_negative,
-      tokenizer,
-      args.verbose_logging,
-    )
-  else:
-    predictions = compute_predictions_logits(
-      examples,
-      features,
-      all_results,
-      args.n_best_size,
-      args.max_answer_length,
-      args.do_lower_case,
-      output_prediction_file,
-      output_nbest_file,
-      output_null_log_odds_file,
-      args.verbose_logging,
-      args.version_2_with_negative,
-      args.null_score_diff_threshold,
-      tokenizer,
-    )
-
+  # TODO with the results, compute metrics.
+  return [0.]  # Placeholder for metrics being computed.
   # Compute the F1 and exact scores.
-  results = squad_evaluate(examples, predictions)
-  return results
+  # results = squad_evaluate(examples, predictions)
+  # return all_results
 
 
-def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False,
-              language='en', lang2id=None):
+def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False, language='en', lang2id=None):
   if args.local_rank not in [-1, 0] and not evaluate:
     # Make sure only the first process in distributed training process the dataset, and the others will use the cache
     torch.distributed.barrier()
@@ -517,16 +423,7 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
     logger.info("Creating features from dataset file at %s", input_dir)
 
     if not args.data_dir and ((evaluate and not args.predict_file) or (not evaluate and not args.train_file)):
-      try:
-        import tensorflow_datasets as tfds
-      except ImportError:
-        raise ImportError("If not data_dir is specified, tensorflow_datasets needs to be installed.")
-
-      if args.version_2_with_negative:
-        logger.warn("tensorflow_datasets does not handle version 2 of SQuAD.")
-
-      tfds_examples = tfds.load("squad")
-      examples = SquadV1Processor().get_examples_from_dataset(tfds_examples, evaluate=evaluate, language=language)
+      raise ValueError("Don't know where to load the training/evaluation data from.")
     else:
       processor = RetrievalSquadProcessor()
       if evaluate:
@@ -540,8 +437,9 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
       max_seq_length=args.max_seq_length,
       max_query_length=args.max_query_length,
       max_answer_length=args.max_answer_length,
-      # return_dataset="pt",
-      # threads=args.threads,
+      is_training=(not evaluate),
+      return_dataset="pt",
+      threads=args.threads,
     )
 
     if args.local_rank in [-1, 0]:
@@ -620,31 +518,12 @@ def main():
     type=str,
     help="Where do you want to store the pre-trained models downloaded from s3",
   )
-
-  parser.add_argument(
-    "--version_2_with_negative",
-    action="store_true",
-    help="If true, the SQuAD examples contain some that do not have an answer.",
-  )
-  parser.add_argument(
-    "--null_score_diff_threshold",
-    type=float,
-    default=0.0,
-    help="If null_score - best_non_null is greater than the threshold predict null.",
-  )
-
   parser.add_argument(
     "--max_seq_length",
     default=384,
     type=int,
     help="The maximum total input sequence length after WordPiece tokenization. Sequences "
     "longer than this will be truncated, and sequences shorter than this will be padded.",
-  )
-  parser.add_argument(
-    "--doc_stride",
-    default=128,
-    type=int,
-    help="When splitting up a long document into chunks, how much stride to take between chunks.",
   )
   parser.add_argument(
     "--max_query_length",
@@ -699,13 +578,6 @@ def main():
     type=int,
     help="The total number of n-best predictions to generate in the nbest_predictions.json output file.",
   )
-#   parser.add_argument(
-#     "--max_answer_length",
-#     default=30,
-#     type=int,
-#     help="The maximum length of an answer that can be generated. This is needed because the start "
-#     "and end predictions are not conditioned on one another.",
-#   )
   parser.add_argument(
     "--verbose_logging",
     action="store_true",
@@ -809,14 +681,14 @@ def main():
 
   args.model_type = args.model_type.lower()
   config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-  #print(model_class)
-  #input()
+
   config = config_class.from_pretrained(
     args.config_name if args.config_name else args.model_name_or_path,
     cache_dir=args.cache_dir if args.cache_dir else None,
   )
   # Set using of language embedding to True
   if args.model_type == "xlm":
+    raise NotImplementedError()
     config.use_lang_emb = True
   tokenizer = tokenizer_class.from_pretrained(
     args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
@@ -900,7 +772,7 @@ def main():
     for checkpoint in checkpoints:
       # Reload the model
       global_step = checkpoint.split("-")[-1] if len(checkpoints) > 1 else ""
-      model = model_class.from_pretrained(checkpoint, force_download=True)
+      model = model_class.from_pretrained(checkpoint, force_download=False)  # Set to false for quick testing.
       model.to(args.device)
 
       # Evaluate

@@ -1,0 +1,21 @@
+python third_party/run_retrieval_qa.py \
+  --model_type bert-retrieval \
+  --model_name_or_path bert-base-multilingual-cased \
+  --do_lower_case \
+  --do_train \
+  --do_eval \
+  --train_file download/squad/train-v1.1.json \
+  --predict_file download/squad/dev-v1.1.json \
+  --per_gpu_train_batch_size 4 \
+  --learning_rate 0.001 \
+  --num_train_epochs 1 \
+  --max_seq_length 128 \
+  --save_steps -1 \
+  --overwrite_output_dir \
+  --gradient_accumulation_steps 4 \
+  --warmup_steps 500 \
+  --output_dir runs/aug-18 \
+  --weight_decay 0.0001 \
+  --threads 8 \
+  --train_lang en \
+  --eval_lang en

@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Use pre-trained models for retrieval tasks."""
+"""Use pre-trained models for retrieval tasks and evaluate on them."""
 
 
 import argparse
@@ -22,6 +22,7 @@ import glob
 import logging
 import os
 import random
+import json
 
 import numpy as np
 import torch
@@ -42,6 +43,8 @@ from transformers import (
 )
 from processors.utils import InputFeatures
 from utils_retrieve import mine_bitext, bucc_eval, similarity_search
+from utils_lareqa import load_data as lareqa_load_data
+from utils_lareqa import mean_avg_prec as lareqa_mean_avg_prec
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +52,13 @@ ALL_MODELS = sum(
   (tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLMConfig, XLMRobertaConfig)), ()
 )
 
+from run_retrieval_qa import BertForSequenceRetrieval
 
 MODEL_CLASSES = {
   "bert": (BertConfig, BertModel, BertTokenizer),
   "xlm": (XLMConfig, XLMModel, XLMTokenizer),
   "xlmr": (XLMRobertaConfig, XLMRobertaModel, XLMRobertaTokenizer),
+  "bert-retrieval": (BertConfig, BertForSequenceRetrieval, BertTokenizer)
 }
 
 
@@ -111,6 +116,9 @@ def prepare_batch(sentences, tokenizer, model_type, device="cuda", max_length=51
   elif model_type == 'bert' or model_type == 'xlmr':
     token_type_ids = torch.LongTensor([[0] * max_length for _ in range(len(sentences))]).to(device)
     return {"input_ids": input_ids, "attention_mask": attention_mask, "token_type_ids": token_type_ids}, pool_mask
+  elif model_type == 'bert-retrieval':
+    token_type_ids = torch.LongTensor([[0] * max_length for _ in range(len(sentences))]).to(device)
+    return {"q_input_ids": input_ids, "q_attention_mask": attention_mask, "q_token_type_ids": token_type_ids}, pool_mask
 
   
 def tokenize_text(text_file, tok_file, tokenizer, lang=None):
@@ -152,7 +160,8 @@ def load_model(args):
   return config, model, tokenizer
 
 
-def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_type='mean'):
+def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_type='mean',
+                       specified_max_length=None):
   num_embeds = args.num_layers
   all_embed_files = ["{}_{}.npy".format(embed_file, i) for i in range(num_embeds)]
   if all(os.path.exists(f) for f in all_embed_files):
@@ -185,31 +194,43 @@ def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_ty
   for i in tqdm(range(num_batch), desc='Batch'):
     start_index = i * batch_size
     end_index = min((i + 1) * batch_size, num_sents)
+    if specified_max_length is not None:
+      max_length_batch = specified_max_length
+    else:
+      max_length_batch = args.max_seq_length
     batch, pool_mask = prepare_batch(sent_toks[start_index: end_index], 
                                      tokenizer, 
                                      args.model_type, 
                                      args.device, 
-                                     args.max_seq_length, 
+                                     max_length_batch, 
                                      lang=lang, 
                                      langid=langid, 
                                      pool_skip_special_token=args.pool_skip_special_token)
 
     with torch.no_grad():
+      if args.model_type == 'bert-retrieval':
+        batch.update({'inference': True})
+
       outputs = model(**batch)
 
-      if args.model_type == 'bert' or args.model_type == 'xlmr':
-        last_layer_outputs, first_token_outputs, all_layer_outputs = outputs
-      elif args.model_type == 'xlm':
-        last_layer_outputs, all_layer_outputs = outputs
-        first_token_outputs = last_layer_outputs[:,0]  # first element of the last layer
-
-      # get the pool embedding
-      if pool_type == 'cls':
-        all_batch_embeds = cls_pool_embedding(all_layer_outputs[-args.num_layers:])
+      if args.model_type == 'bert-retrieval':
+        all_batch_embeds = outputs[0]  # outputs = (q_encodings,)
+        # In this case, we're just getting q_encodings from the first tower
+        last_layer_outputs, first_token_outputs, all_layer_outputs = None, None, None
       else:
-        all_batch_embeds = []
-        all_layer_outputs = all_layer_outputs[-args.num_layers:]
-        all_batch_embeds.extend(mean_pool_embedding(all_layer_outputs, pool_mask))
+        if args.model_type == 'bert' or args.model_type == 'xlmr':
+          last_layer_outputs, first_token_outputs, all_layer_outputs = outputs
+        elif args.model_type == 'xlm':
+          last_layer_outputs, all_layer_outputs = outputs
+          first_token_outputs = last_layer_outputs[:,0]  # first element of the last layer
+
+        # get the pool embedding
+        if pool_type == 'cls':
+          all_batch_embeds = cls_pool_embedding(all_layer_outputs[-args.num_layers:])
+        else:
+          all_batch_embeds = []
+          all_layer_outputs = all_layer_outputs[-args.num_layers:]
+          all_batch_embeds.extend(mean_pool_embedding(all_layer_outputs, pool_mask))
 
     for embeds, batch_embeds in zip(all_embeds, all_batch_embeds):
       embeds[start_index: end_index] = batch_embeds.cpu().numpy().astype(np.float32)
@@ -361,6 +382,20 @@ def main():
     help="The maximum total input sequence length after tokenization. Sequences longer "
     "than this will be truncated, sequences shorter will be padded.",
   )
+  parser.add_argument(
+    "--max_answer_length",
+    default=92,
+    type=int,
+    help="The maximum total input sequence length after tokenization. Sequences longer "
+    "than this will be truncated, sequences shorter will be padded.",
+  ) 
+  parser.add_argument(
+    "--max_query_length",
+    default=64,
+    type=int,
+    help="The maximum total input sequence length after tokenization. Sequences longer "
+    "than this will be truncated, sequences shorter will be padded.",
+  )
   parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
   parser.add_argument(
     "--overwrite_output_dir", action="store_true", help="Overwrite the content of the output directory"
@@ -427,7 +462,111 @@ def main():
             best_threshold = results['best-threshold']
             logger.info('--Candidates: {}'.format(cand2score_file))
             logger.info('index={} '.format(suf) + ' '.join('{}={:.4f}'.format(k,v) for k,v in results.items()))
+  elif args.task_name == 'lareqa':
+    # The lareqa data is copied and stored here.
+    base_path = os.path.join(args.data_dir, 'lareqa')
+    dataset_to_dir = {
+      "xquad": "xquad-r",
+    }
 
+    squad_dir = os.path.join(base_path, dataset_to_dir["xquad"])
+
+    # Load the question set and candidate set.
+    squad_per_lang = {}
+    languages = set()
+    # Load all files in the given directory, expecting names like 'en.json',
+    # 'es.json', etc.
+    for filename in os.listdir(squad_dir)[:1]:  # TODO change this, just to make testing fast.
+      language = os.path.splitext(filename)[0]
+      languages.add(language)
+      with open(os.path.join(squad_dir, filename), "r") as f:
+        squad_per_lang[language] = json.load(f)
+      print("Loaded %s" % filename)
+    question_set, candidate_set = lareqa_load_data(squad_per_lang)
+
+    # root directory where the outputs will be stored.
+    root = args.output_dir
+
+    question_ids_file = os.path.join(root, "question_uids.txt")
+    question_embed_file = os.path.join(root, "question_encodings.npz")
+    q_id2embed = {}
+    for lang, questions_single_lang in question_set.by_lang.items():
+      lang_file= os.path.join(root, lang + "-questions.txt")
+      tok_file= os.path.join(root,  lang + "-questions.tok")
+      embed_file=os.path.join(root, lang + "-questions.emb")
+      ids = []
+      with open(lang_file, "w") as f:
+        for question in questions_single_lang:
+          f.write("%s\n" % question.question)
+          ids.append(question.uid)
+
+      embeddings = extract_embeddings(args, lang_file, tok_file, embed_file,
+                                      lang=lang, specified_max_length=args.max_query_length)
+
+      embeddings_specific_layer = embeddings[args.specific_layer]
+
+      for i, embedding in enumerate(embeddings_specific_layer):
+        q_id2embed[ids[i]] = embedding
+        questions_single_lang[i].encoding = embedding
+
+    with open(question_ids_file, "w") as f:
+      f.writelines("%s\n" % id_ for id_ in list(q_id2embed.keys()))
+
+    with open(question_embed_file, "wb") as f:
+      np.save(f, np.array(list(q_id2embed.values())))
+
+
+    # Do the same thing for the candidates.
+    c_id2embed_sentences_and_contexts = {}
+    for lang, candidates_single_lang in candidate_set.by_lang.items():
+      lang_file_sentences_and_contexts= os.path.join(
+          root, lang + "-candidates_sentences_and_contexts.txt")
+      tok_file_sentences_and_contexts = os.path.join(
+          root,
+          lang + "-candidates_sentences_and_contexts.tok")
+      embed_file_sentences_and_contexts=os.path.join(
+          root, lang + "-candidates_sentences_and_contexts.emb")
+
+      c_ids = []
+
+      sentences_and_contexts = [(candidate.sentence + candidate.context).replace("\n", "") for candidate in candidates_single_lang]
+
+      with open(lang_file_sentences_and_contexts,
+                "w", encoding='utf-8') as f:
+        f.write("\n".join(sentences_and_contexts))
+
+      for candidate in candidates_single_lang:
+        c_ids.append(candidate.uid)
+
+      embeddings_sentences_and_contexts = extract_embeddings(
+          args,
+          lang_file_sentences_and_contexts,
+          tok_file_sentences_and_contexts,
+          embed_file_sentences_and_contexts,
+          lang=lang,
+          specified_max_length=args.max_answer_length)
+
+      embeddings_specific_layer_sentences_and_contexts = (
+          embeddings_sentences_and_contexts[args.specific_layer])
+
+      for i in range(len(embeddings_specific_layer_sentences_and_contexts)):
+        candidates_single_lang[i].encoding = {
+            'sentences_and_contexts': embeddings_specific_layer_sentences_and_contexts[i]
+        }
+        # c_id2embed_only_sentences[c_ids[i]] = embeddings_specific_layer_only_sentences[i]
+        c_id2embed_sentences_and_contexts[c_ids[i]] = embeddings_specific_layer_sentences_and_contexts[i]
+        # c_id2embed_averaged_embeddgings[c_ids[i]] = averaged_embeddings
+
+    with open(os.path.join(root, "candidate_uids.txt"), "w") as f:
+      f.writelines("%s\n" % id_ for id_ in list(c_id2embed_sentences_and_contexts.keys()))
+
+    with open(os.path.join(root, "candidate_encodings_sentences_and_contexts.npz"), "wb") as f:
+      np.save(f, np.array(list(c_id2embed_sentences_and_contexts.values())))
+
+    print(question_set, candidate_set)
+    print("*" * 10)
+    lareqa_mean_avg_prec(question_set, candidate_set)
+    print("*" * 10)
   elif args.task_name == 'tatoeba':
     lang3_dict = {'ara':'ar', 'heb':'he', 'vie':'vi', 'ind':'id',
     'jav':'jv', 'tgl':'tl', 'eus':'eu', 'mal':'ml', 'tam':'ta',

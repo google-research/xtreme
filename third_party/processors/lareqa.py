@@ -34,7 +34,9 @@ def retrieval_squad_convert_example_to_features(example,
                                                 max_seq_length,
                                                 max_query_length,
                                                 max_answer_length):
+    _ = max_seq_length  # TODO Currently we don't use max_seq_length, so make sure that it's being used correctly in tokenization.
     features = []
+    # TODO make sure that this tokenization is happening correctly with correct cls, sep and max lengths.
     q_features = tokenizer.encode_plus(
         example.question_text,
         max_length=max_query_length,
@@ -71,6 +73,7 @@ def squad_convert_example_to_features_init(tokenizer_for_convert):
 def retrieval_squad_convert_examples_to_features(
     examples, tokenizer, max_seq_length,
     max_query_length, max_answer_length,
+    is_training, return_dataset,
     threads=1,
 ):
     """
@@ -81,13 +84,13 @@ def retrieval_squad_convert_examples_to_features(
         examples: list of :class:`~transformers.data.processors.squad.SquadExample`
         tokenizer: an instance of a child of :class:`~transformers.PreTrainedTokenizer`
         max_seq_length: The maximum sequence length of the inputs.
-        doc_stride: The stride used when the context is too large and is split across several features.
         max_query_length: The maximum length of the query.
+        max_answer_length: The maximum length of the answer and context.
         is_training: whether to create features for model evaluation or model training.
         return_dataset: Default False. Either 'pt' or 'tf'.
             if 'pt': returns a torch.data.TensorDataset,
             if 'tf': returns a tf.data.Dataset
-        threads: multiple processing threadsa-smi
+        threads: multiple processing threads
 
 
     Returns:
@@ -107,6 +110,8 @@ def retrieval_squad_convert_examples_to_features(
             is_training=not evaluate,
         )
     """
+    if return_dataset != 'pt':
+        raise NotImplementedError("Retrival Squad can only convert examples to pytorch features.")
 
     # Defining helper methods
     features = []
@@ -140,7 +145,6 @@ def retrieval_squad_convert_examples_to_features(
         example_index += 1
     features = new_features
     del new_features
-    return_dataset = "pt"
     if return_dataset == "pt":
         if not is_torch_available():
             raise RuntimeError("PyTorch must be installed to return a PyTorch dataset.")
@@ -152,19 +156,19 @@ def retrieval_squad_convert_examples_to_features(
         a_input_ids = torch.tensor([f.a_input_ids for f in features], dtype=torch.long)
         a_attention_masks = torch.tensor([f.a_attention_mask for f in features], dtype=torch.long)
         a_token_type_ids = torch.tensor([f.a_token_type_ids for f in features], dtype=torch.long)
-        # all_cls_index = torch.tensor([f.cls_index for f in features], dtype=torch.long)
-        # all_p_mask = torch.tensor([f.p_mask for f in features], dtype=torch.float)
-        # all_langs = torch.tensor([f.langs for f in features], dtype=torch.long)
-        is_training = True
+        # TODO more code here based on the model type (similar to logic in squad.py) because input features are different.
         if not is_training:
-            raise NotImplementedError()
-            all_example_index = torch.arange(all_input_ids.size(0), dtype=torch.long)
+            all_example_index = torch.arange(q_input_ids.size(0), dtype=torch.long)
             dataset = TensorDataset(
-                all_input_ids, all_attention_masks, all_token_type_ids, all_example_index, all_cls_index, all_p_mask, all_langs
-            )
+            q_input_ids,
+            q_attention_masks,
+            q_token_type_ids,
+            a_input_ids,
+            a_attention_masks,
+            a_token_type_ids,
+            all_example_index  # Add all_example_index as a feature
+        )
         else:
-            # all_start_positions = torch.tensor([f.start_position for f in features], dtype=torch.long)
-            # all_end_positions = torch.tensor([f.end_position for f in features], dtype=torch.long)
             dataset = TensorDataset(
                 q_input_ids,
                 q_attention_masks,
@@ -173,7 +177,6 @@ def retrieval_squad_convert_examples_to_features(
                 a_attention_masks,
                 a_token_type_ids,
             )
-
         return features, dataset
     elif return_dataset == "tf":
         raise NotImplementedError()
@@ -181,40 +184,13 @@ def retrieval_squad_convert_examples_to_features(
     return features
 
 
-class SquadProcessor(DataProcessor):
+class RetrievalSquadProcessor(DataProcessor):
     """
-    Processor for the SQuAD data set.
-    Overriden by SquadV1Processor and SquadV2Processor, used by the version 1.1 and version 2.0 of SQuAD, respectively.
+    Processor for the Retrieval SQuAD data set.
     """
 
-    train_file = None
-    dev_file = None
-
-    def _get_example_from_tensor_dict(self, tensor_dict, evaluate=False):
-        raise NotImplementedError()
-    
-    
-    def get_examples_from_dataset(self, dataset, evaluate=False):
-        """
-        Creates a list of :class:`~transformers.data.processors.squad.SquadExample` using a TFDS dataset.
-
-        Args:
-            dataset: The tfds dataset loaded from `tensorflow_datasets.load("squad")`
-            evaluate: boolean specifying if in evaluation mode or in training mode
-
-        Returns:
-            List of SquadExample
-
-        Examples::
-
-            import tensorflow_datasets as tfds
-            dataset = tfds.load("squad")
-
-            training_examples = get_examples_from_dataset(dataset, evaluate=False)
-            evaluation_examples = get_examples_from_dataset(dataset, evaluate=True)
-        """
-        raise NotImplementedError()
-
+    train_file = "train-v1.1.json"
+    dev_file = "dev-v1.1.json"
 
     def get_train_examples(self, data_dir, filename=None, language='en'):
         """
@@ -266,7 +242,7 @@ class SquadProcessor(DataProcessor):
         for entry in tqdm(input_data):
             for paragraph in entry["paragraphs"]:
                 paragraph_text = paragraph["context"]
-                sentence_breaks = list(infer_sentence_breaks(paragraph_text))
+                sentence_breaks = list(infer_sentence_breaks(paragraph_text))  # TODO can also get sentence_breaks from json directly.
                 paragraph_id += 1
                 doc_tokens = []
                 char_to_word_offset = []
@@ -328,11 +304,6 @@ class SquadProcessor(DataProcessor):
                         paragraph_id=paragraph_id)
                     examples.append(example)
         return examples
-
-
-class RetrievalSquadProcessor(SquadProcessor):
-    train_file = "train-v1.1.json"
-    dev_file = "dev-v1.1.json"
 
 
 class RetrievalSquadExample(object):
