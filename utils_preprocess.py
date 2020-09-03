@@ -192,7 +192,8 @@ def udpos_preprocess(args):
       items = line.strip().split('\t')
       if len(items) != 10:
         empty = all(w == '_' for w in sent)
-        if not empty:
+        num_empty = sum([int(w == '_') for w in sent])
+        if num_empty == 0 or num_empty < len(sent) - 1:
           data.append((sent, tag, lines))
         sent, tag, lines = [], [], []
       else:
