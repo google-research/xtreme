@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -eux  # for easier debugging
+
 REPO=$PWD
 LIB=$REPO/third_party
 mkdir -p $LIB
@@ -20,7 +22,7 @@ mkdir -p $LIB
 # install conda env
 conda create --name xtreme --file conda-env.txt
 conda init bash
-source activate xtreme
+conda activate xtreme
 
 # install latest transformer
 cd $LIB
@@ -40,6 +42,6 @@ pip install jieba
 
 git clone https://github.com/neubig/kytea.git && cd kytea
 autoreconf -i
-./configure --prefix=$HOME/local
+./configure --prefix=${CONDA_PREFIX}
 make && make install
 pip install kytea
