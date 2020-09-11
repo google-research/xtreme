@@ -113,6 +113,13 @@ As part of training translate-train and translate-test baselines we have automat
 English training sets to other languages and tests sets to English. Translations are available for
 the following datasets: SQuAD v1.1 (only train and dev), MLQA, PAWS-X, TyDiQA-GoldP, XNLI, and XQuAD.
 
+For PAWS-X and XNLI, the translations are in the following format:
+Column 1 and Column 2: original sentence pairs
+Column 3 and Column 4: translated sentence pairs
+Column 5: label
+
+This will help make the association between the original data and their translations.
+
 For XNLI and XQuAD, we have furthermore created pseudo test sets by automatically translating the English test set to the remaining
 languages in XTREME so that test data for all 40 languages is available. Note that
 these translations are noisy and should not be treated as ground truth.
