@@ -35,7 +35,7 @@ def read_tag(file):
       else:
         labels.append(example)
         example = []
-  if len(example) != 0:
+  if example:
     labels.append(example)
   return labels
 
