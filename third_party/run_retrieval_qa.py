@@ -63,62 +63,55 @@ ALL_MODELS = sum(
 from transformers.modeling_bert import BertPreTrainedModel, BertModel
 
 class BertForSequenceRetrieval(BertPreTrainedModel):
-    def __init__(self, config):
-        super().__init__(config)
+  def __init__(self, config):
+    super().__init__(config)
 
-        self.bert = BertModel(config)
-        self.dropout = torch.nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = torch.nn.Linear(config.hidden_size,
-                                          self.config.num_labels)
-        def normalized_cls_token(cls_token):
-          return torch.nn.functional.normalize(cls_token, p=2, dim=1)
-        self.normalized_cls_token = normalized_cls_token
-        self.init_weights()
+    self.bert = BertModel(config)
+    def normalized_cls_token(cls_token):
+      return torch.nn.functional.normalize(cls_token, p=2, dim=1)
+    self.normalized_cls_token = normalized_cls_token
+    self.init_weights()
     
-    def forward(
-        self,
-        q_input_ids=None,
-        q_attention_mask=None,
-        q_token_type_ids=None,
-        a_input_ids=None,
-        a_attention_mask=None,
-        a_token_type_ids=None,
-        position_ids=None,
-        head_mask=None,
-        inputs_embeds=None,
-        inference=False
-        ):
-        outputs_a = self.bert(
-            q_input_ids,
-            attention_mask=q_attention_mask,
-            token_type_ids=q_token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            )
-        if inference:
-          # In inference mode, only use the first tower to get the encodings.
-          return (self.normalized_cls_token(outputs_a[1]),)
+  def forward(
+      self,
+      q_input_ids=None,
+      q_attention_mask=None,
+      q_token_type_ids=None,
+      a_input_ids=None,
+      a_attention_mask=None,
+      a_token_type_ids=None,
+      position_ids=None,
+      head_mask=None,
+      inputs_embeds=None,
+      inference=False):
+    outputs_a = self.bert(
+        q_input_ids,
+        attention_mask=q_attention_mask,
+        token_type_ids=q_token_type_ids,
+        position_ids=position_ids,
+        head_mask=head_mask,
+        inputs_embeds=inputs_embeds)
+    if inference:
+      # In inference mode, only use the first tower to get the encodings.
+      return self.normalized_cls_token(outputs_a[1])
 
-        outputs_b = self.bert(
-            a_input_ids,
-            attention_mask=a_attention_mask,
-            token_type_ids=a_token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            )
+    outputs_b = self.bert(
+        a_input_ids,
+        attention_mask=a_attention_mask,
+        token_type_ids=a_token_type_ids,
+        position_ids=position_ids,
+        head_mask=head_mask,
+        inputs_embeds=inputs_embeds)
 
-        a_encodings = self.normalized_cls_token(outputs_a[1])
-        b_encodings = self.normalized_cls_token(outputs_b[1])
-        similarity = torch.matmul(a_encodings, torch.transpose(b_encodings, 0, 1))
-        batch_size = list(a_encodings.size())[0]
-        labels = torch.arange(0,batch_size)
-        logit_scale = 100.0  # TODO (make a trainable variable)
-        logits = similarity * logit_scale
-        loss = torch.nn.CrossEntropyLoss()(logits, labels)
-        outputs = (loss, ) + (a_encodings, b_encodings)
-        return outputs
+    a_encodings = self.normalized_cls_token(outputs_a[1])
+    b_encodings = self.normalized_cls_token(outputs_b[1])
+    similarity = torch.matmul(a_encodings, torch.transpose(b_encodings, 0, 1))
+    batch_size = list(a_encodings.size())[0]
+    labels = torch.arange(0,batch_size)
+    logit_scale = 100.0  # TODO (make a trainable variable)
+    logits = similarity * logit_scale
+    loss = torch.nn.CrossEntropyLoss()(logits, labels)
+    return loss, a_encodings, b_encodings
     
 
 MODEL_CLASSES = {

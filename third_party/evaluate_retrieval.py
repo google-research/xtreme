@@ -208,14 +208,16 @@ def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_ty
                                      pool_skip_special_token=args.pool_skip_special_token)
 
     with torch.no_grad():
+      # TODO(jabot): Remove this case.
       if args.model_type == 'bert-retrieval':
-        batch.update({'inference': True})
+        batch['inference'] = True
 
       outputs = model(**batch)
 
+      # TODO(jabot): Remove this case, as the current implementation is buggy.
       if args.model_type == 'bert-retrieval':
-        all_batch_embeds = outputs[0]  # outputs = (q_encodings,)
-        # In this case, we're just getting q_encodings from the first tower
+        all_batch_embeds = outputs
+        # In this case, we're just getting q_encodings from the first tower.
         last_layer_outputs, first_token_outputs, all_layer_outputs = None, None, None
       else:
         if args.model_type == 'bert' or args.model_type == 'xlmr':
@@ -500,6 +502,8 @@ def main():
           f.write("%s\n" % question.question)
           ids.append(question.uid)
 
+      # TODO(jabot): Update to call a separate function for extracting final
+      # encodings.
       embeddings = extract_embeddings(args, lang_file, tok_file, embed_file,
                                       lang=lang, specified_max_length=args.max_query_length)
 
@@ -538,6 +542,8 @@ def main():
       for candidate in candidates_single_lang:
         c_ids.append(candidate.uid)
 
+      # TODO(jabot): Update to call a separate function for extracting final
+      # encodings.
       embeddings_sentences_and_contexts = extract_embeddings(
           args,
           lang_file_sentences_and_contexts,

@@ -356,11 +356,6 @@ def mean_avg_prec(question_set, candidate_set):
         [np.expand_dims(i.encoding[embedding_type], 0) for i in all_candidates],
         axis=0)
 
-    # Normalized embeddings:    
-    candidate_matrix = candidate_matrix / np.expand_dims(np.linalg.norm(
-        candidate_matrix, axis=1), -1)
-    candidate_matrix = np.nan_to_num(candidate_matrix)  # TODO: figure out why models are giving 0 embeddings.
-
     avg_prec = []
     for q in all_questions:
       question_vec = np.expand_dims(q.encoding, 0)
