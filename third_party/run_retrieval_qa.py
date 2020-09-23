@@ -106,10 +106,10 @@ class BertForSequenceRetrieval(BertPreTrainedModel):
     a_encodings = self.normalized_cls_token(outputs_a[1])
     b_encodings = self.normalized_cls_token(outputs_b[1])
     similarity = torch.matmul(a_encodings, torch.transpose(b_encodings, 0, 1))
-    batch_size = list(a_encodings.size())[0]
-    labels = torch.arange(0,batch_size)
     logit_scale = 100.0  # TODO (make a trainable variable)
     logits = similarity * logit_scale
+    batch_size = list(a_encodings.size())[0]
+    labels = torch.arange(0, batch_size, device=logits.device)
     loss = torch.nn.CrossEntropyLoss()(logits, labels)
     return loss, a_encodings, b_encodings
     
