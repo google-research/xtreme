@@ -18,12 +18,14 @@
 
 import argparse
 
+import collections
 import glob
 import logging
 import os
 import random
 import json
 
+import faiss
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
@@ -140,37 +142,17 @@ def tokenize_text(text_file, tok_file, tokenizer, lang=None):
   logger.info(' -- save tokenized sentences to {}'.format(tok_file))
 
   logger.info('============ First 5 tokenized sentences ===============')
-  for i in range(5):
-    logger.info('S{}: {}'.format(i, ' '.join(tok_sentences[i])))
+  for i, tok_sentence in enumerate(tok_sentences[:5]):
+    logger.info('S{}: {}'.format(i, ' '.join(tok_sentence)))
   logger.info('==================================')
   return tok_sentences
 
 
-def load_model(args):
+def load_model(args, lang, output_hidden_states=None):
   config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
   config = config_class.from_pretrained(args.model_name_or_path)
-  config.output_hidden_states = True
-  langid = config.lang2id.get(lang, config.lang2id["en"]) if args.model_type == 'xlm' else 0
-  logger.info("langid={}, lang={}".format(langid, lang))  
-  tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path, do_lower_case=args.do_lower_case)
-  logger.info("tokenizer.pad_token={}, pad_token_id={}".format(tokenizer.pad_token, tokenizer.pad_token_id))
-  model = model_class.from_pretrained(args.model_name_or_path, config=config)
-  model.to(args.device)
-  model.eval()
-  return config, model, tokenizer
-
-
-def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_type='mean',
-                       specified_max_length=None):
-  num_embeds = args.num_layers
-  all_embed_files = ["{}_{}.npy".format(embed_file, i) for i in range(num_embeds)]
-  if all(os.path.exists(f) for f in all_embed_files):
-    logger.info('loading files from {}'.format(all_embed_files))
-    return [load_embeddings(f) for f in all_embed_files]
-
-  config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-  config = config_class.from_pretrained(args.model_name_or_path)
-  config.output_hidden_states = True
+  if output_hidden_states is not None:
+    config.output_hidden_states = output_hidden_states
   langid = config.lang2id.get(lang, config.lang2id["en"]) if args.model_type == 'xlm' else 0
   logger.info("langid={}, lang={}".format(langid, lang))  
   tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path, do_lower_case=args.do_lower_case)
@@ -181,6 +163,18 @@ def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_ty
     model = model_class.from_pretrained(args.model_name_or_path, config=config)
   model.to(args.device)
   model.eval()
+  return config, model, tokenizer, langid
+
+
+def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_type='mean'):
+  num_embeds = args.num_layers
+  all_embed_files = ["{}_{}.npy".format(embed_file, i) for i in range(num_embeds)]
+  if all(os.path.exists(f) for f in all_embed_files):
+    logger.info('loading files from {}'.format(all_embed_files))
+    return [load_embeddings(f) for f in all_embed_files]
+
+  config, model, tokenizer, langid = load_model(args, lang,
+                                                output_hidden_states=True)
 
   sent_toks = tokenize_text(text_file, tok_file, tokenizer, lang)
   max_length = max([len(s) for s in sent_toks])
@@ -194,45 +188,31 @@ def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_ty
   for i in tqdm(range(num_batch), desc='Batch'):
     start_index = i * batch_size
     end_index = min((i + 1) * batch_size, num_sents)
-    if specified_max_length is not None:
-      max_length_batch = specified_max_length
-    else:
-      max_length_batch = args.max_seq_length
     batch, pool_mask = prepare_batch(sent_toks[start_index: end_index], 
                                      tokenizer, 
                                      args.model_type, 
                                      args.device, 
-                                     max_length_batch, 
+                                     args.max_seq_length, 
                                      lang=lang, 
                                      langid=langid, 
                                      pool_skip_special_token=args.pool_skip_special_token)
 
     with torch.no_grad():
-      # TODO(jabot): Remove this case.
-      if args.model_type == 'bert-retrieval':
-        batch['inference'] = True
-
       outputs = model(**batch)
 
-      # TODO(jabot): Remove this case, as the current implementation is buggy.
-      if args.model_type == 'bert-retrieval':
-        all_batch_embeds = outputs
-        # In this case, we're just getting q_encodings from the first tower.
-        last_layer_outputs, first_token_outputs, all_layer_outputs = None, None, None
-      else:
-        if args.model_type == 'bert' or args.model_type == 'xlmr':
-          last_layer_outputs, first_token_outputs, all_layer_outputs = outputs
-        elif args.model_type == 'xlm':
-          last_layer_outputs, all_layer_outputs = outputs
-          first_token_outputs = last_layer_outputs[:,0]  # first element of the last layer
+      if args.model_type == 'bert' or args.model_type == 'xlmr':
+        last_layer_outputs, first_token_outputs, all_layer_outputs = outputs
+      elif args.model_type == 'xlm':
+        last_layer_outputs, all_layer_outputs = outputs
+        first_token_outputs = last_layer_outputs[:,0]  # first element of the last layer
 
-        # get the pool embedding
-        if pool_type == 'cls':
-          all_batch_embeds = cls_pool_embedding(all_layer_outputs[-args.num_layers:])
-        else:
-          all_batch_embeds = []
-          all_layer_outputs = all_layer_outputs[-args.num_layers:]
-          all_batch_embeds.extend(mean_pool_embedding(all_layer_outputs, pool_mask))
+      # get the pool embedding
+      if pool_type == 'cls':
+        all_batch_embeds = cls_pool_embedding(all_layer_outputs[-args.num_layers:])
+      else:
+        all_batch_embeds = []
+        all_layer_outputs = all_layer_outputs[-args.num_layers:]
+        all_batch_embeds.extend(mean_pool_embedding(all_layer_outputs, pool_mask))
 
     for embeds, batch_embeds in zip(all_embeds, all_batch_embeds):
       embeds[start_index: end_index] = batch_embeds.cpu().numpy().astype(np.float32)
@@ -244,6 +224,59 @@ def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_ty
       logger.info('save embed {} to file {}'.format(embeds.shape, file))
       np.save(file, embeds)
   return all_embeds
+
+
+def extract_encodings(args, text_file, tok_file, embed_file, lang='en',
+                       max_seq_length=None):
+  """Get final encodings (not all layers, as extract_embeddings does)."""
+  embed_file_path = f"{embed_file}.npy"
+  if os.path.exists(embed_file_path):
+    logger.info('loading file from {}'.format(embed_file_path))
+    return load_embeddings(embed_file_path)
+
+  config, model, tokenizer, langid = load_model(args, lang,
+                                                output_hidden_states=False)
+
+  sent_toks = tokenize_text(text_file, tok_file, tokenizer, lang)
+  max_length = max([len(s) for s in sent_toks])
+  logger.info('max length of tokenized text = {}'.format(max_length))
+
+  batch_size = args.batch_size
+  num_batch = int(np.ceil(len(sent_toks) * 1.0 / batch_size))
+  num_sents = len(sent_toks)
+
+  embeds = np.zeros(shape=(num_sents, args.embed_size), dtype=np.float32)
+  for i in tqdm(range(num_batch), desc='Batch'):
+    start_index = i * batch_size
+    end_index = min((i + 1) * batch_size, num_sents)
+
+    # If given, custom sequence length overrides the args value.
+    max_seq_length = max_seq_length or args.max_seq_length
+    batch, pool_mask = prepare_batch(sent_toks[start_index: end_index], 
+                                     tokenizer, 
+                                     args.model_type, 
+                                     args.device, 
+                                     max_seq_length, 
+                                     lang=lang, 
+                                     langid=langid, 
+                                     pool_skip_special_token=args.pool_skip_special_token)
+    with torch.no_grad():
+      # TODO: add other retrieval baseline models
+      if args.model_type == 'bert-retrieval':
+        batch['inference'] = True
+        outputs = model(**batch)
+        batch_embeds = outputs
+      else:
+        logger.fatal("Unsupported model-type '%s' - "
+                     "perhaps extract_embeddings() must be used?")
+
+      embeds[start_index: end_index] = batch_embeds.cpu().numpy().astype(np.float32)
+    torch.cuda.empty_cache()
+  
+  if embed_file is not None:
+    logger.info('save embed {} to file {}'.format(embeds.shape, embed_file_path))
+    np.save(embed_file_path, embeds)
+  return embeds
 
 
 def mean_pool_embedding(all_layer_outputs, masks):
@@ -276,6 +309,32 @@ def concate_embedding(all_embeds, last_k):
     embeds = np.hstack(all_embeds[-last_k:]) # (B,D)
     return embeds
 
+# TODO(jabot): Move this to a shared location for the task.
+def el_eval(queries, predictions):
+  """Evaluate entity linking.
+
+  Args:
+    queries: list of query dictionaries
+    predictions: list of prediction lists
+  Returns:
+    mean-reciprocal rank
+  """
+
+  def _reciprocal_rank(labels):
+    for rank, label in enumerate(labels, start=1):
+      if label:
+        return 1.0 / rank
+    return 0.0
+
+  assert len(queries) == len(predictions)
+
+  reciprocal_ranks = []
+  for query, prediction_list in zip(queries, predictions):
+    ground_truth = query["entity_qid"]
+    labels = [int(p == ground_truth) for p in prediction_list]
+    reciprocal_ranks.append(_reciprocal_rank(labels))
+  return np.mean(reciprocal_ranks)
+
 
 def main():
   parser = argparse.ArgumentParser(description='BUCC bitext mining')
@@ -288,7 +347,7 @@ def main():
   parser.add_argument('--threshold', type=float, default=-1,
     help='Threshold (used with --output)')  
   parser.add_argument('--embed_size', type=int, default=768,
-    help='Threshold (used with --output)')
+    help='Dimensions of output embeddings')
   parser.add_argument('--pool_type', type=str, default='mean',
     help='pooling over work embeddings')
 
@@ -502,14 +561,11 @@ def main():
           f.write("%s\n" % question.question)
           ids.append(question.uid)
 
-      # TODO(jabot): Update to call a separate function for extracting final
-      # encodings.
-      embeddings = extract_embeddings(args, lang_file, tok_file, embed_file,
-                                      lang=lang, specified_max_length=args.max_query_length)
-
-      embeddings_specific_layer = embeddings[args.specific_layer]
-
-      for i, embedding in enumerate(embeddings_specific_layer):
+      # Array of [number of questions, embed_size]
+      embeddings = extract_encodings(args, lang_file, tok_file, embed_file,
+                                     lang=lang,
+                                     max_seq_length=args.max_query_length)
+      for i, embedding in enumerate(embeddings):
         q_id2embed[ids[i]] = embedding
         questions_single_lang[i].encoding = embedding
 
@@ -519,49 +575,40 @@ def main():
     with open(question_embed_file, "wb") as f:
       np.save(f, np.array(list(q_id2embed.values())))
 
-
     # Do the same thing for the candidates.
     c_id2embed_sentences_and_contexts = {}
     for lang, candidates_single_lang in candidate_set.by_lang.items():
       lang_file_sentences_and_contexts= os.path.join(
           root, lang + "-candidates_sentences_and_contexts.txt")
       tok_file_sentences_and_contexts = os.path.join(
-          root,
-          lang + "-candidates_sentences_and_contexts.tok")
+          root, lang + "-candidates_sentences_and_contexts.tok")
       embed_file_sentences_and_contexts=os.path.join(
           root, lang + "-candidates_sentences_and_contexts.emb")
 
       c_ids = []
+      sentences_and_contexts = [
+          (candidate.sentence + candidate.context).replace("\n", "")
+          for candidate in candidates_single_lang]
 
-      sentences_and_contexts = [(candidate.sentence + candidate.context).replace("\n", "") for candidate in candidates_single_lang]
-
-      with open(lang_file_sentences_and_contexts,
-                "w", encoding='utf-8') as f:
+      with open(lang_file_sentences_and_contexts, "w", encoding='utf-8') as f:
         f.write("\n".join(sentences_and_contexts))
 
       for candidate in candidates_single_lang:
         c_ids.append(candidate.uid)
 
-      # TODO(jabot): Update to call a separate function for extracting final
-      # encodings.
-      embeddings_sentences_and_contexts = extract_embeddings(
+      # Array of [number of candidates in single lang, embed_size]
+      embeddings = extract_encodings(
           args,
           lang_file_sentences_and_contexts,
           tok_file_sentences_and_contexts,
           embed_file_sentences_and_contexts,
           lang=lang,
-          specified_max_length=args.max_answer_length)
+          max_seq_length=args.max_answer_length)
 
-      embeddings_specific_layer_sentences_and_contexts = (
-          embeddings_sentences_and_contexts[args.specific_layer])
-
-      for i in range(len(embeddings_specific_layer_sentences_and_contexts)):
-        candidates_single_lang[i].encoding = {
-            'sentences_and_contexts': embeddings_specific_layer_sentences_and_contexts[i]
-        }
-        # c_id2embed_only_sentences[c_ids[i]] = embeddings_specific_layer_only_sentences[i]
-        c_id2embed_sentences_and_contexts[c_ids[i]] = embeddings_specific_layer_sentences_and_contexts[i]
-        # c_id2embed_averaged_embeddgings[c_ids[i]] = averaged_embeddings
+      for i, embedding in enumerate(embeddings):
+        candidates_single_lang[i].encoding = {'sentences_and_contexts':
+                                              embedding}
+        c_id2embed_sentences_and_contexts[c_ids[i]] = embedding
 
     with open(os.path.join(root, "candidate_uids.txt"), "w") as f:
       f.writelines("%s\n" % id_ for id_ in list(c_id2embed_sentences_and_contexts.keys()))
@@ -573,6 +620,101 @@ def main():
     print("*" * 10)
     lareqa_mean_avg_prec(question_set, candidate_set)
     print("*" * 10)
+  elif args.task_name == 'wikinews_el':
+    base_output_path = os.path.join(args.output_dir, 'wikinews_el')
+
+    def _read_jsonl(path):
+      """Read jsonl record from path."""
+      with open(path, "r") as fin:
+        data = [json.loads(line) for line in fin]
+        return data
+
+    # Build a single index of all candidate vectors, populated on the-fly below.
+    candidate_index = faiss.IndexFlatIP(args.embed_size)
+
+    # Encode candidates.
+
+    # Split by language for encoding phase only.
+    candidates = _read_jsonl(os.path.join(args.data_dir, "candidates_1m.jsonl"))
+    logger.info("Loaded {} candidates.".format(len(candidates)))
+
+    qid2text = {c["qid"]: c["text"] for c in candidates}
+    candidates_by_lang = collections.defaultdict(list)
+    candidate_id2qid = []
+    for c in candidates:
+      candidates_by_lang[c["lang"]].append(c)
+
+    for lang, candidates_slice in candidates_by_lang.items():
+      candidate_text_file = os.path.join(args.output_dir,
+                                         f"candidates.{lang}.txt")
+      candidate_tok_file = os.path.join(args.output_dir,
+                                        f"candidates.{lang}.tok")
+      embed_file = os.path.join(args.output_dir, f"candidates.{lang}.emb")
+      with open(candidate_text_file, "w") as f:
+        for candidate in candidates_slice:
+          f.write("%s\n" % candidate["text"])
+          candidate_id2qid.append(candidate["qid"])
+
+      candidate_encodings = extract_encodings(args, candidate_text_file,
+                                              candidate_tok_file,
+                                              embed_file, lang=lang,
+                                              max_seq_length=args.max_query_length)
+      faiss.normalize_L2(candidate_encodings)
+      candidate_index.add(candidate_encodings)
+    logger.info("Candidate index size = %d" % candidate_index.ntotal)
+
+    # Encode queries.
+
+    # list of dictionaries.
+    queries = _read_jsonl(os.path.join(args.data_dir,
+                                       "wikinews15_v2_xtreme.jsonl"))
+    logger.info("Loaded {} queries.".format(len(queries)))
+
+    # Split input by languages in keeping with the other tasks.
+    queries_by_lang = collections.defaultdict(list)
+    for q in queries:
+      queries_by_lang[q["lang"]].append(q)
+    macro_mrr = []
+    for lang, queries_slice in queries_by_lang.items():
+      query_text_file = os.path.join(args.output_dir, f"queries.{lang}.txt")
+      query_tok_file = os.path.join(args.output_dir, f"queries.{lang}.tok")
+      embed_file = os.path.join(args.output_dir, f"queries.{lang}.emb")
+      query_predictions_file = os.path.join(args.output_dir,
+                                            f"queries.{lang}.predicted.txt")
+      with open(query_text_file, "w") as f:
+        for query in queries_slice:
+          f.write("%s\n" % query["query"])
+
+      query_encodings = extract_encodings(args, query_text_file, query_tok_file,
+                                          embed_file, lang=lang,
+                                          max_seq_length=args.max_query_length)
+
+      # Retrieve K nearest-neighbors for each query in the current query slice,
+      # using exact search.
+      K = 100
+      scores, predictions = candidate_index.search(query_encodings, K)
+      predictions_qids = []
+      with open(query_predictions_file, "w") as f:
+        for i, neighbor_ids in enumerate(predictions):
+          # Map predictions from internal sequential ids to entity QIDs.
+          qids = [candidate_id2qid[neighbor] for neighbor in neighbor_ids]
+          predictions_qids.append(qids)
+          if i < 5:  # for debug inspection
+            logger.info("Retrieval output for '%s'" % queries_slice[i]["query"])
+            logger.info("gold=%s, predicted:" % queries_slice[i]["entity_qid"])
+            for qid in qids[:5]:
+              logger.info("\t%s: %s" % (qid, qid2text[qid]))
+          f.write("%s\n" % "\t".join(qids))
+
+      mrr_slice = el_eval(queries_slice, predictions_qids)
+      macro_mrr.append(mrr_slice)
+      logger.info("MRR for query_slice: %.4f" % mrr_slice)
+
+    print("*" * 10)
+    logger.info("Final MRR (macro-averaged over languages): %.4f" %
+                np.mean(macro_mrr))
+    print("*" * 10)
+
   elif args.task_name == 'tatoeba':
     lang3_dict = {'ara':'ar', 'heb':'he', 'vie':'vi', 'ind':'id',
     'jav':'jv', 'tgl':'tl', 'eus':'eu', 'mal':'ml', 'tam':'ta',
