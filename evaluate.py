@@ -35,6 +35,11 @@ def read_tag(file):
       else:
         labels.append(example)
         example = []
+  print(labels)
+  if example:
+    labels.append(example)
+  print('After appending')
+  print(labels)
   return labels
 
 
@@ -149,6 +154,7 @@ def evaluate_one_task(prediction_file, label_file, task, language=None):
   Both input files contain one example per line as follows:
     ``[label]\t[sentence1]\t[sentence2]``
   """
+  print(task, language)
   predictions = READER_FUNCTION[task](prediction_file)
   labels = READER_FUNCTION[task](label_file)
   if task not in ['bucc2018', 'mlqa', 'tydiqa', 'xquad']:
