@@ -20,8 +20,8 @@ XQUAD_DIR=${DIR}/xquad
 MLQA_DIR=${DIR}/mlqa
 TYDIQA_DIR=${DIR}/tydiqa
 
-EVAL_SQUAD=${DIR}/squad/evaluate-v1.1.py
-EVAL_MLQA=${MLQA_DIR}/mlqa_evaluation_v1.py
+EVAL_SQUAD=${PWD}/third_party/evaluate_squad.py
+EVAL_MLQA=${PWD}/third_party/evaluate_mlqa.py
 
 PREDICTIONS_DIR=${REPO}/predictions
 XQUAD_PRED_DIR=${PREDICTIONS_DIR}/xquad
