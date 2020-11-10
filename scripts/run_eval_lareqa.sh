@@ -14,11 +14,13 @@
 # limitations under the License.
 
 REPO=$PWD
-### If you want to use pre-trained model
+
+# To evaluate a checkpoint from fine-tuning (recommended), find the checkpoint
+# in the output directory after running scripts/train_lareqa.sh
+MODEL="runs/lareqa_mbert_seq352_lr1e-4_b32_fp16_ep3/checkpoint-1000"
+# To evaluate a pretrained model *without* finetuning (not recommended):
 # MODEL="bert-base-multilingual-cased"  
-### If you want to use specific checkpoint from training 
-# this is the output directory specified when calling scripts/train_lareqa.sh
-MODEL="runs/lareqa-train/checkpoint-2"  
+
 GPU=${2:-0}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
@@ -26,17 +28,14 @@ OUT_DIR=${4:-"$REPO/outputs/"}
 export CUDA_VISIBLE_DEVICES=$GPU
 
 TASK='lareqa'
-MAXL=128
-TL='en'
 
-NLAYER=12
-LC=""
-# if [ $MODEL == "bert-base-multilingual-cased" ]; then
-#   MODEL_TYPE="bert-retrieval"
-#   DIM=768
-# fi
 MODEL_TYPE="bert-retrieval"
 DIM=768
+DO_LOWER_CASE=""
+# These settings should match those used in scripts/train_lareqa.sh
+MAX_SEQ_LENGTH=352
+MAX_QUERY_LENGTH=96
+MAX_ANSWER_LENGTH=256
 
 OUT=$OUT_DIR/$TASK/${MODEL}/
 mkdir -p $OUT
@@ -47,12 +46,12 @@ python $REPO/third_party/evaluate_retrieval.py \
   --embed_size $DIM \
   --batch_size 100 \
   --task_name $TASK \
-  --num_layers $NLAYER \
-  $LC \
   --pool_type cls \
-  --max_seq_length $MAXL \
+  --max_seq_length $MAX_SEQ_LENGTH \
+  --max_query_length $MAX_QUERY_LENGTH \
+  --max_answer_length $MAX_ANSWER_LENGTH \
   --data_dir $DATA_DIR \
   --output_dir $OUT \
   --extract_embeds \
   --dist cosine \
-  --specific_layer=10
+  $DO_LOWER_CASE

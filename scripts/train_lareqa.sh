@@ -13,24 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Fine-tune a pretrained multilingual encoder on the LAReQA QA retrieval task.
+
+# If using an uncased model, add:
+# --do_lower_case
+
+# Mixed precision training (--fp16) requires Apex. To install, see:
+# https://anaconda.org/conda-forge/nvidia-apex
+
 python third_party/run_retrieval_qa.py \
   --model_type bert-retrieval \
   --model_name_or_path bert-base-multilingual-cased \
-  --do_lower_case \
   --do_train \
   --do_eval \
   --train_file download/squad/train-v1.1.json \
   --predict_file download/squad/dev-v1.1.json \
-  --per_gpu_train_batch_size 4 \
-  --learning_rate 0.001 \
-  --num_train_epochs 1 \
-  --max_seq_length 128 \
-  --save_steps 2 \
+  --per_gpu_train_batch_size 32 \
+  --learning_rate 1e-4 \
+  --num_train_epochs 3 \
+  --max_seq_length 352 \
+  --max_query_length 96 \
+  --max_answer_length 256 \
+  --save_steps 100 \
   --overwrite_output_dir \
-  --gradient_accumulation_steps 4 \
-  --warmup_steps 500 \
-  --output_dir runs/lareqa-train \
-  --weight_decay 0.0001 \
+  --gradient_accumulation_steps 1 \
+  --warmup_steps 10 \
+  --fp16 \
+  --output_dir runs/lareqa_mbert_seq352_lr1e-4_b32_fp16_ep3 \
+  --weight_decay 0.0 \
   --threads 8 \
   --train_lang en \
   --eval_lang en

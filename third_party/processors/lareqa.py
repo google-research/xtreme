@@ -388,15 +388,16 @@ class RetrievalSquadFeatures(object):
 
 class RetrievalSquadResult(object):
     """
-    Constructs a SquadResult which can be used to evaluate a model's output on the SQuAD dataset.
+    Constructs a RetrievalSquadResult, which can be used to evaluate a model's
+    output on retrieval over a SQuAD-like set, as in the LAReQA benchmark.
 
     Args:
         unique_id: The unique identifier corresponding to that example.
-        start_logits: The logits corresponding to the start of the answer
-        end_logits: The logits corresponding to the end of the answer
+        q_encoding: The vector encoding of the question text.
+        a_encoding: The vector encoding of the answer text (including context).
     """
 
     def __init__(self, unique_id, q_encoding, a_encoding):
+        self.unique_id = unique_id
         self.q_encoding = q_encoding
         self.a_encoding = a_encoding
-        self.unique_id = unique_id

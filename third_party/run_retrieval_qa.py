@@ -70,6 +70,8 @@ class BertForSequenceRetrieval(BertPreTrainedModel):
     def normalized_cls_token(cls_token):
       return torch.nn.functional.normalize(cls_token, p=2, dim=1)
     self.normalized_cls_token = normalized_cls_token
+    self.logit_scale = torch.nn.Parameter(torch.empty(1))
+    torch.nn.init.constant_(self.logit_scale, 100.0)
     self.init_weights()
     
   def forward(
@@ -106,8 +108,7 @@ class BertForSequenceRetrieval(BertPreTrainedModel):
     a_encodings = self.normalized_cls_token(outputs_a[1])
     b_encodings = self.normalized_cls_token(outputs_b[1])
     similarity = torch.matmul(a_encodings, torch.transpose(b_encodings, 0, 1))
-    logit_scale = 100.0  # TODO (make a trainable variable)
-    logits = similarity * logit_scale
+    logits = similarity * self.logit_scale
     batch_size = list(a_encodings.size())[0]
     labels = torch.arange(0, batch_size, device=logits.device)
     loss = torch.nn.CrossEntropyLoss()(logits, labels)
@@ -370,24 +371,29 @@ def evaluate(args, model, tokenizer, prefix="", language='en', lang2id=None):
         raise NotImplementedError()
         # inputs["langs"] = batch[6]
 
-      outputs = model(**inputs)
+      loss, q_encodings, a_encodings = model(**inputs)
+      # For multi-gpu parallel (not distributed) training, average loss
+      # across GPUs.
+      if args.n_gpu > 1:
+        loss = loss.mean()
+
+    all_losses.append(np.array(loss.detach().cpu()))
 
     for i, example_index in enumerate(example_indices):
       eval_feature = features[example_index.item()]
       unique_id = int(eval_feature.unique_id)
-      # output = [to_list(output[i]) for output in outputs]
-      result = RetrievalSquadResult(unique_id=unique_id,
-                                    q_encoding=np.array(to_list(outputs[1])),
-                                    a_encoding=np.array(to_list(outputs[2])))
+      result = RetrievalSquadResult(
+          unique_id=unique_id,
+          q_encoding=np.array(to_list(q_encodings[i])),
+          a_encoding=np.array(to_list(a_encodings[i])))
       all_results.append(result)
-      all_losses.append(np.array(outputs[0].detach().cpu()))
 
   evalTime = timeit.default_timer() - start_time
   logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(dataset))
 
   # Current only returning the average loss. 
-  # TODO: add other evaluation metrics, if desired
-  return np.mean(all_losses)
+  # TODO: Add other evaluation metrics, if desired.
+  return {"avg_loss": np.mean(all_losses)}
   # Evaluation metrics from run_squad.py as an example.
   # Compute the F1 and exact scores.
   # results = squad_evaluate(examples, predictions)
@@ -569,12 +575,6 @@ def main():
     help="If > 0: set total number of training steps to perform. Override num_train_epochs.",
   )
   parser.add_argument("--warmup_steps", default=0, type=int, help="Linear warmup over warmup_steps.")
-  parser.add_argument(
-    "--n_best_size",
-    default=20,
-    type=int,
-    help="The total number of n-best predictions to generate in the nbest_predictions.json output file.",
-  )
   parser.add_argument(
     "--verbose_logging",
     action="store_true",
