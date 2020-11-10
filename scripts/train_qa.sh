@@ -39,11 +39,13 @@ MODEL_PATH=$OUT_DIR/$SRC/${MODEL}_LR${LR}_EPOCH${NUM_EPOCHS}_maxlen${MAXL}
 mkdir -p $MODEL_PATH
 # Train either on the SQuAD or TyDiQa-GoldP English train file
 if [ $SRC == 'squad' ]; then
-  TRAIN_FILE=${DATA_DIR}/squad/train-v1.1.json
-  PREDICT_FILE=${DATA_DIR}/squad/dev-v1.1.json
+  TASK_DATA_DIR=${DATA_DIR}/squad
+  TRAIN_FILE=${TASK_DATA_DIR}/train-v1.1.json
+  PREDICT_FILE=${TASK_DATA_DIR}/dev-v1.1.json
 else
-  TRAIN_FILE=${DATA_DIR}/tydiqa/tydiqa-goldp-v1.1-train/tydiqa.goldp.en.train.json
-  PREDICT_FILE=${DATA_DIR}/tydiqa/tydiqa-goldp-v1.1-dev/tydiqa.en.dev.json
+  TASK_DATA_DIR=${DATA_DIR}/tydiqa
+  TRAIN_FILE=${TASK_DATA_DIR}/tydiqa-goldp-v1.1-train/tydiqa.en.train.json
+  PREDICT_FILE=${TASK_DATA_DIR}/tydiqa-goldp-v1.1-dev/tydiqa.en.dev.json
 fi
 
 # train
@@ -53,6 +55,7 @@ CUDA_VISIBLE_DEVICES=$GPU python third_party/run_squad.py \
   --do_lower_case \
   --do_train \
   --do_eval \
+  --data_dir ${TASK_DATA_DIR} \
   --train_file ${TRAIN_FILE} \
   --predict_file ${PREDICT_FILE} \
   --per_gpu_train_batch_size 4 \
