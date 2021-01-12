@@ -39,8 +39,6 @@ class XnliProcessor(DataProcessor):
         lines = self._read_tsv(os.path.join(data_dir, "{}-{}.tsv".format(split, lg)))
         
         for (i, line) in enumerate(lines):
-          if i == 0:
-            continue
           guid = "%s-%s-%s" % (split, lg, i)
           text_a = line[0]
           text_b = line[1]
