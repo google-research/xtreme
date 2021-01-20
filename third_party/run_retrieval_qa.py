@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google AI Language Team Authors, 
+# Copyright 2018 The Google AI Language Team Authors,
 # The HuggingFace Inc. team, and The XTREME Benchmark Authors.
 # Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
@@ -14,11 +14,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Finetuning the models on retrieval tasks (Retrieval SQuAD). Currently supports BERT.
+"""Finetune models on retrieval tasks (Retrieval SQuAD).
 
 Forked from run_squad.py.
 """
-
 
 import argparse
 import glob
@@ -34,18 +33,13 @@ from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
 from transformers import (
-  WEIGHTS_NAME,
-  AdamW,
-  BertConfig,
-  BertTokenizer,
-  get_linear_schedule_with_warmup,
-)
+    AdamW, BertConfig, BertTokenizer, WEIGHTS_NAME, XLMRobertaTokenizer,
+    get_linear_schedule_with_warmup)
 
-from processors.lareqa import (
-  RetrievalSquadResult,
-  RetrievalSquadProcessor,
-  retrieval_squad_convert_examples_to_features
-)
+from bert import BertForRetrieval
+from processors import lareqa
+from xlm_roberta import XLMRobertaConfig, XLMRobertaForRetrieval
+
 
 try:
   from torch.utils.tensorboard import SummaryWriter
@@ -56,68 +50,17 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum(
-  (tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig,)),
-  (),
+    (tuple(conf.pretrained_config_archive_map.keys())
+     for conf in (BertConfig, XLMRobertaConfig)),
+    (),
 )
 
-from transformers.modeling_bert import BertPreTrainedModel, BertModel
-
-class BertForSequenceRetrieval(BertPreTrainedModel):
-  def __init__(self, config):
-    super().__init__(config)
-
-    self.bert = BertModel(config)
-    def normalized_cls_token(cls_token):
-      return torch.nn.functional.normalize(cls_token, p=2, dim=1)
-    self.normalized_cls_token = normalized_cls_token
-    self.logit_scale = torch.nn.Parameter(torch.empty(1))
-    torch.nn.init.constant_(self.logit_scale, 100.0)
-    self.init_weights()
-    
-  def forward(
-      self,
-      q_input_ids=None,
-      q_attention_mask=None,
-      q_token_type_ids=None,
-      a_input_ids=None,
-      a_attention_mask=None,
-      a_token_type_ids=None,
-      position_ids=None,
-      head_mask=None,
-      inputs_embeds=None,
-      inference=False):
-    outputs_a = self.bert(
-        q_input_ids,
-        attention_mask=q_attention_mask,
-        token_type_ids=q_token_type_ids,
-        position_ids=position_ids,
-        head_mask=head_mask,
-        inputs_embeds=inputs_embeds)
-    if inference:
-      # In inference mode, only use the first tower to get the encodings.
-      return self.normalized_cls_token(outputs_a[1])
-
-    outputs_b = self.bert(
-        a_input_ids,
-        attention_mask=a_attention_mask,
-        token_type_ids=a_token_type_ids,
-        position_ids=position_ids,
-        head_mask=head_mask,
-        inputs_embeds=inputs_embeds)
-
-    a_encodings = self.normalized_cls_token(outputs_a[1])
-    b_encodings = self.normalized_cls_token(outputs_b[1])
-    similarity = torch.matmul(a_encodings, torch.transpose(b_encodings, 0, 1))
-    logits = similarity * self.logit_scale
-    batch_size = list(a_encodings.size())[0]
-    labels = torch.arange(0, batch_size, device=logits.device)
-    loss = torch.nn.CrossEntropyLoss()(logits, labels)
-    return loss, a_encodings, b_encodings
-    
-
 MODEL_CLASSES = {
-  "bert-retrieval": (BertConfig, BertForSequenceRetrieval, BertTokenizer)
+    "bert-retrieval": (BertConfig, BertForRetrieval, BertTokenizer),
+    "xlmr-retrieval":
+        (XLMRobertaConfig, XLMRobertaForRetrieval, XLMRobertaTokenizer),
 }
+
 
 def set_seed(args):
   random.seed(args.seed)
@@ -240,20 +183,14 @@ def train(args, train_dataset, model, tokenizer):
       batch = tuple(t.to(args.device) for t in batch)
 
       inputs = {
-        "q_input_ids": batch[0],
-        "q_attention_mask": batch[1],
-        "q_token_type_ids": None if args.model_type in ["xlm", "xlm-roberta", "distilbert"] else batch[2],
-        "a_input_ids": batch[3],
-        "a_attention_mask": batch[4],
-        "a_token_type_ids": None if args.model_type in ["xlm", "xlm-roberta", "distilbert"] else batch[5],
+          "q_input_ids": batch[0],
+          "q_attention_mask": batch[1],
+          "q_token_type_ids": None if args.model_type == "xlmr-retrieval" else batch[2],
+          "a_input_ids": batch[3],
+          "a_attention_mask": batch[4],
+          "a_token_type_ids": None if args.model_type == "xlmr-retrieval" else batch[5],
       }
 
-      if args.model_type in ["xlnet", "xlm"]:
-        raise NotImplementedError()
-        # inputs.update({"cls_index": batch[5], "p_mask": batch[6]})
-      if args.model_type == "xlm":
-        raise NotImplementedError()
-        # inputs["langs"] = batch[7]
       outputs = model(**inputs)
       # model outputs are always tuple in transformers (see doc)
       loss = outputs[0]
@@ -323,8 +260,9 @@ def train(args, train_dataset, model, tokenizer):
 
 
 def evaluate(args, model, tokenizer, prefix="", language='en', lang2id=None):
-  dataset, examples, features = load_and_cache_examples(args, tokenizer, evaluate=True, output_examples=True,
-                              language=language, lang2id=lang2id)
+  dataset, examples, features = load_and_cache_examples(
+      args, tokenizer, evaluate=True, output_examples=True, language=language,
+      lang2id=lang2id)
 
   if not os.path.exists(args.output_dir) and args.local_rank in [-1, 0]:
     os.makedirs(args.output_dir)
@@ -354,22 +292,14 @@ def evaluate(args, model, tokenizer, prefix="", language='en', lang2id=None):
 
     with torch.no_grad():
       inputs = {
-        "q_input_ids": batch[0],
-        "q_attention_mask": batch[1],
-        "q_token_type_ids": None if args.model_type in ["xlm", "xlm-roberta", "distilbert"] else batch[2],
-        "a_input_ids": batch[3],
-        "a_attention_mask": batch[4],
-        "a_token_type_ids": None if args.model_type in ["xlm", "xlm-roberta", "distilbert"] else batch[5],
+          "q_input_ids": batch[0],
+          "q_attention_mask": batch[1],
+          "q_token_type_ids": None if args.model_type == "xlmr-retrieval" else batch[2],
+          "a_input_ids": batch[3],
+          "a_attention_mask": batch[4],
+          "a_token_type_ids": None if args.model_type == "xlmr-retrieval" else batch[5],
       }
       example_indices = batch[6]
-
-      # XLNet and XLM use more arguments for their predictions
-      if args.model_type in ["xlnet", "xlm"]:
-        raise NotImplementedError()
-        # inputs.update({"cls_index": batch[4], "p_mask": batch[5]})
-      if args.model_type == "xlm":
-        raise NotImplementedError()
-        # inputs["langs"] = batch[6]
 
       loss, q_encodings, a_encodings = model(**inputs)
       # For multi-gpu parallel (not distributed) training, average loss
@@ -382,7 +312,7 @@ def evaluate(args, model, tokenizer, prefix="", language='en', lang2id=None):
     for i, example_index in enumerate(example_indices):
       eval_feature = features[example_index.item()]
       unique_id = int(eval_feature.unique_id)
-      result = RetrievalSquadResult(
+      result = lareqa.RetrievalSquadResult(
           unique_id=unique_id,
           q_encoding=np.array(to_list(q_encodings[i])),
           a_encoding=np.array(to_list(a_encodings[i])))
@@ -391,7 +321,7 @@ def evaluate(args, model, tokenizer, prefix="", language='en', lang2id=None):
   evalTime = timeit.default_timer() - start_time
   logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(dataset))
 
-  # Current only returning the average loss. 
+  # Current only returning the average loss.
   # TODO: Add other evaluation metrics, if desired.
   return {"avg_loss": np.mean(all_losses)}
   # Evaluation metrics from run_squad.py as an example.
@@ -428,13 +358,13 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
     if not args.data_dir and ((evaluate and not args.predict_file) or (not evaluate and not args.train_file)):
       raise ValueError("Don't know where to load the training/evaluation data from.")
     else:
-      processor = RetrievalSquadProcessor()
+      processor = lareqa.RetrievalSquadProcessor()
       if evaluate:
         examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file, language=language)
       else:
         examples = processor.get_train_examples(args.data_dir, filename=args.train_file, language=language)
 
-    features, dataset = retrieval_squad_convert_examples_to_features(
+    features, dataset = lareqa.retrieval_squad_convert_examples_to_features(
       examples=examples,
       tokenizer=tokenizer,
       max_seq_length=args.max_seq_length,
@@ -677,8 +607,7 @@ def main():
     torch.distributed.barrier()
 
   args.model_type = args.model_type.lower()
-
-  if args.model_type == "xlmr-retrieval":
+  if args.model_type not in MODEL_CLASSES:
     raise NotImplementedError()
 
   config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
@@ -687,10 +616,6 @@ def main():
     args.config_name if args.config_name else args.model_name_or_path,
     cache_dir=args.cache_dir if args.cache_dir else None,
   )
-  # Set using of language embedding to True
-  if args.model_type == "xlm":
-    raise NotImplementedError()
-    config.use_lang_emb = True
   tokenizer = tokenizer_class.from_pretrained(
     args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
     do_lower_case=args.do_lower_case,
@@ -714,8 +639,8 @@ def main():
   logger.info("Training/evaluation parameters %s", args)
 
   # Before we do anything with models, we want to ensure that we get fp16 execution of torch.einsum if args.fp16 is set.
-  # Otherwise it'll default to "promote" mode, and we'll get fp32 operations. Note that running `--fp16_opt_level="O2"` will
-  # remove the need for this code, but it is still valid.
+  # Otherwise it'll default to "promote" mode, and we'll get fp32 operations. Note that running `--fp16_opt_level="O2"`
+  # will remove the need for this code, but it is still valid.
   if args.fp16:
     try:
       import apex
@@ -726,7 +651,8 @@ def main():
 
   # Training
   if args.do_train:
-    train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False, language=args.train_lang, lang2id=lang2id)
+    train_dataset = load_and_cache_examples(
+        args, tokenizer, evaluate=False, output_examples=False, language=args.train_lang, lang2id=lang2id)
     global_step, tr_loss = train(args, train_dataset, model, tokenizer)
     logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 

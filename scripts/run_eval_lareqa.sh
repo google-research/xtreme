@@ -27,11 +27,11 @@ CHECKPOINT=${5:-checkpoint-1000}
 TASK='lareqa'
 
 # These settings should match those used in scripts/train_lareqa.sh
-MAX_SEQ_LEN=352
+MAX_SEQ_LEN=352  # Total sequence length (query + answer)
 MAX_QUERY_LEN=96
 MAX_ANSWER_LEN=256
-LR=5e-5
 NUM_EPOCHS=3.0
+LR=2e-5
 
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert-retrieval"

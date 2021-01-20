@@ -15,7 +15,6 @@
 # limitations under the License.
 """Evaluate pretrained or fine-tuned models on retrieval tasks."""
 
-
 import argparse
 
 import collections
@@ -33,34 +32,32 @@ from torch.utils.data import RandomSampler, SequentialSampler
 from tqdm import tqdm, trange
 
 from transformers import (
-  BertConfig,
-  BertModel,
-  BertTokenizer,
-  XLMConfig,
-  XLMModel,
-  XLMTokenizer,
-  XLMRobertaConfig,
-  XLMRobertaTokenizer,
-  XLMRobertaModel,
-)
+    BertConfig, BertModel, BertTokenizer, XLMConfig, XLMModel,
+    XLMRobertaTokenizer, XLMTokenizer)
+
+from bert import BertForRetrieval
 from processors.utils import InputFeatures
 from utils_retrieve import mine_bitext, bucc_eval, similarity_search
 from utils_lareqa import load_data as lareqa_load_data
 from utils_lareqa import mean_avg_prec as lareqa_mean_avg_prec
+from xlm_roberta import XLMRobertaConfig, XLMRobertaForRetrieval, XLMRobertaModel
+
 
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum(
-  (tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLMConfig, XLMRobertaConfig)), ()
+    (tuple(conf.pretrained_config_archive_map.keys())
+     for conf in (BertConfig, XLMConfig, XLMRobertaConfig)),
+    ()
 )
 
-from run_retrieval_qa import BertForSequenceRetrieval
-
 MODEL_CLASSES = {
-  "bert": (BertConfig, BertModel, BertTokenizer),
-  "xlm": (XLMConfig, XLMModel, XLMTokenizer),
-  "xlmr": (XLMRobertaConfig, XLMRobertaModel, XLMRobertaTokenizer),
-  "bert-retrieval": (BertConfig, BertForSequenceRetrieval, BertTokenizer)
+    "bert": (BertConfig, BertModel, BertTokenizer),
+    "xlm": (XLMConfig, XLMModel, XLMTokenizer),
+    "xlmr": (XLMRobertaConfig, XLMRobertaModel, XLMRobertaTokenizer),
+    "bert-retrieval": (BertConfig, BertForRetrieval, BertTokenizer),
+    "xlmr-retrieval":
+        (XLMRobertaConfig, XLMRobertaForRetrieval, XLMRobertaTokenizer),
 }
 
 
@@ -118,11 +115,9 @@ def prepare_batch(sentences, tokenizer, model_type, device="cuda", max_length=51
   elif model_type == 'bert' or model_type == 'xlmr':
     token_type_ids = torch.LongTensor([[0] * max_length for _ in range(len(sentences))]).to(device)
     return {"input_ids": input_ids, "attention_mask": attention_mask, "token_type_ids": token_type_ids}, pool_mask
-  elif model_type == 'bert-retrieval':
+  elif model_type in ('bert-retrieval', 'xlmr-retrieval'):
     token_type_ids = torch.LongTensor([[0] * max_length for _ in range(len(sentences))]).to(device)
     return {"q_input_ids": input_ids, "q_attention_mask": attention_mask, "q_token_type_ids": token_type_ids}, pool_mask
-  elif model_type == "xlmr-retrieval":
-      raise NotImplementedError()
 
 
 def tokenize_text(text_file, tok_file, tokenizer, lang=None):
@@ -263,8 +258,7 @@ def extract_encodings(args, text_file, tok_file, embed_file, lang='en',
                                      langid=langid,
                                      pool_skip_special_token=args.pool_skip_special_token)
     with torch.no_grad():
-      # TODO: add other retrieval baseline models
-      if args.model_type == 'bert-retrieval':
+      if args.model_type in ('bert-retrieval', 'xlmr-retrieval'):
         batch['inference'] = True
         outputs = model(**batch)
         batch_embeds = outputs
