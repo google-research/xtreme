@@ -13,34 +13,61 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Fine-tune a pretrained multilingual encoder on the LAReQA QA retrieval task.
-
-# If using an uncased model, add:
-# --do_lower_case
+# Fine-tune a pretrained multilingual encoder on the LAReQA retrieval task.
 
 # Mixed precision training (--fp16) requires Apex. To install, see:
 # https://anaconda.org/conda-forge/nvidia-apex
 
+REPO=$PWD
+MODEL=${1:-bert-base-multilingual-cased}
+GPU=${2:-0}
+DATA_DIR=${3:-"$REPO/download/"}
+OUT_DIR=${4:-"$REPO/outputs/"}
+
+TASK='lareqa'
+
+MAX_SEQ_LEN=352  # Total sequence length (query + answer)
+MAX_QUERY_LEN=96
+MAX_ANSWER_LEN=256
+LR=5e-5
+NUM_EPOCHS=3.0
+
+if [ $MODEL == "bert-base-multilingual-cased" ]; then
+  MODEL_TYPE="bert-retrieval"
+  DO_LOWER_CASE=""
+elif [ $MODEL == "xlm-roberta-large" ]; then
+  MODEL_TYPE="xlmr-retrieval"
+  DO_LOWER_CASE="--do_lower_case"
+fi
+
+MODEL_DIR=$OUT_DIR/$TASK/${MODEL}_LR${LR}_EPOCH${NUM_EPOCHS}_LEN${MAX_SEQ_LEN}
+mkdir -p $MODEL_DIR
+
+export CUDA_VISIBLE_DEVICES=$GPU
+
 python third_party/run_retrieval_qa.py \
-  --model_type bert-retrieval \
-  --model_name_or_path bert-base-multilingual-cased \
+  --model_type $MODEL_TYPE \
+  --model_name_or_path $MODEL \
   --do_train \
   --do_eval \
-  --train_file download/squad/train-v1.1.json \
-  --predict_file download/squad/dev-v1.1.json \
+  --evaluate_during_training \
+  --train_file $DATA_DIR/squad/train-v1.1.json \
+  --predict_file $DATA_DIR/squad/dev-v1.1.json \
   --per_gpu_train_batch_size 32 \
-  --learning_rate 1e-4 \
-  --num_train_epochs 3 \
-  --max_seq_length 352 \
-  --max_query_length 96 \
-  --max_answer_length 256 \
-  --save_steps 100 \
+  --learning_rate $LR \
+  --num_train_epochs $NUM_EPOCHS \
+  --max_seq_length $MAX_SEQ_LEN \
+  --max_query_length $MAX_QUERY_LEN \
+  --max_answer_length $MAX_ANSWER_LEN \
+  --logging_steps 500 \
+  --save_steps 500 \
   --overwrite_output_dir \
   --gradient_accumulation_steps 1 \
-  --warmup_steps 10 \
+  --warmup_steps 0 \
   --fp16 \
-  --output_dir runs/lareqa_mbert_seq352_lr1e-4_b32_fp16_ep3 \
+  --output_dir $MODEL_DIR \
   --weight_decay 0.0 \
   --threads 8 \
   --train_lang en \
-  --eval_lang en
+  --eval_lang en \
+  $DO_LOWER_CASE

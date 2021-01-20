@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Use pre-trained models for retrieval tasks and evaluate on them."""
+"""Evaluate pretrained or fine-tuned models on retrieval tasks."""
 
 
 import argparse
@@ -74,7 +74,7 @@ def prepare_batch(sentences, tokenizer, model_type, device="cuda", max_length=51
   pad_token = tokenizer.pad_token
   cls_token = tokenizer.cls_token
   sep_token = tokenizer.sep_token
-  
+
   pad_token_id = tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0]
   pad_token_segment_id = 0
 
@@ -105,10 +105,10 @@ def prepare_batch(sentences, tokenizer, model_type, device="cuda", max_length=51
 
   input_ids = torch.LongTensor(batch_input_ids).to(device)
   attention_mask = torch.LongTensor(batch_attention_mask).to(device)
-  
+
   if pool_skip_special_token:
     pool_mask = torch.LongTensor(batch_pool_mask).to(device)
-  else: 
+  else:
     pool_mask = attention_mask
 
 
@@ -121,8 +121,10 @@ def prepare_batch(sentences, tokenizer, model_type, device="cuda", max_length=51
   elif model_type == 'bert-retrieval':
     token_type_ids = torch.LongTensor([[0] * max_length for _ in range(len(sentences))]).to(device)
     return {"q_input_ids": input_ids, "q_attention_mask": attention_mask, "q_token_type_ids": token_type_ids}, pool_mask
+  elif model_type == "xlmr-retrieval":
+      raise NotImplementedError()
 
-  
+
 def tokenize_text(text_file, tok_file, tokenizer, lang=None):
   if os.path.exists(tok_file):
     tok_sentences = [l.strip().split(' ') for l in open(tok_file)]
@@ -154,7 +156,7 @@ def load_model(args, lang, output_hidden_states=None):
   if output_hidden_states is not None:
     config.output_hidden_states = output_hidden_states
   langid = config.lang2id.get(lang, config.lang2id["en"]) if args.model_type == 'xlm' else 0
-  logger.info("langid={}, lang={}".format(langid, lang))  
+  logger.info("langid={}, lang={}".format(langid, lang))
   tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path, do_lower_case=args.do_lower_case)
   logger.info("tokenizer.pad_token={}, pad_token_id={}".format(tokenizer.pad_token, tokenizer.pad_token_id))
   if args.init_checkpoint:
@@ -179,7 +181,7 @@ def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_ty
   sent_toks = tokenize_text(text_file, tok_file, tokenizer, lang)
   max_length = max([len(s) for s in sent_toks])
   logger.info('max length of tokenized text = {}'.format(max_length))
-  
+
   batch_size = args.batch_size
   num_batch = int(np.ceil(len(sent_toks) * 1.0 / batch_size))
   num_sents = len(sent_toks)
@@ -188,13 +190,13 @@ def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_ty
   for i in tqdm(range(num_batch), desc='Batch'):
     start_index = i * batch_size
     end_index = min((i + 1) * batch_size, num_sents)
-    batch, pool_mask = prepare_batch(sent_toks[start_index: end_index], 
-                                     tokenizer, 
-                                     args.model_type, 
-                                     args.device, 
-                                     args.max_seq_length, 
-                                     lang=lang, 
-                                     langid=langid, 
+    batch, pool_mask = prepare_batch(sent_toks[start_index: end_index],
+                                     tokenizer,
+                                     args.model_type,
+                                     args.device,
+                                     args.max_seq_length,
+                                     lang=lang,
+                                     langid=langid,
                                      pool_skip_special_token=args.pool_skip_special_token)
 
     with torch.no_grad():
@@ -218,7 +220,7 @@ def extract_embeddings(args, text_file, tok_file, embed_file, lang='en', pool_ty
       embeds[start_index: end_index] = batch_embeds.cpu().numpy().astype(np.float32)
     del last_layer_outputs, first_token_outputs, all_layer_outputs
     torch.cuda.empty_cache()
-  
+
   if embed_file is not None:
     for file, embeds in zip(all_embed_files, all_embeds):
       logger.info('save embed {} to file {}'.format(embeds.shape, file))
@@ -252,13 +254,13 @@ def extract_encodings(args, text_file, tok_file, embed_file, lang='en',
 
     # If given, custom sequence length overrides the args value.
     max_seq_length = max_seq_length or args.max_seq_length
-    batch, pool_mask = prepare_batch(sent_toks[start_index: end_index], 
-                                     tokenizer, 
-                                     args.model_type, 
-                                     args.device, 
-                                     max_seq_length, 
-                                     lang=lang, 
-                                     langid=langid, 
+    batch, pool_mask = prepare_batch(sent_toks[start_index: end_index],
+                                     tokenizer,
+                                     args.model_type,
+                                     args.device,
+                                     max_seq_length,
+                                     lang=lang,
+                                     langid=langid,
                                      pool_skip_special_token=args.pool_skip_special_token)
     with torch.no_grad():
       # TODO: add other retrieval baseline models
@@ -272,7 +274,7 @@ def extract_encodings(args, text_file, tok_file, embed_file, lang='en',
 
       embeds[start_index: end_index] = batch_embeds.cpu().numpy().astype(np.float32)
     torch.cuda.empty_cache()
-  
+
   if embed_file is not None:
     logger.info('save embed {} to file {}'.format(embeds.shape, embed_file_path))
     np.save(embed_file_path, embeds)
@@ -345,7 +347,7 @@ def main():
   parser.add_argument('--gold', default=None,
     help='File name of gold alignments')
   parser.add_argument('--threshold', type=float, default=-1,
-    help='Threshold (used with --output)')  
+    help='Threshold (used with --output)')
   parser.add_argument('--embed_size', type=int, default=768,
     help='Dimensions of output embeddings')
   parser.add_argument('--pool_type', type=str, default='mean',
@@ -387,7 +389,7 @@ def main():
   parser.add_argument("--tgt_embed_file", type=str, default=None, help="tgt_embed_file")
   parser.add_argument("--src_embed_file", type=str, default=None, help="src_embed_file")
   parser.add_argument("--tgt_tok_file", type=str, default=None, help="tgt_tok_file")
-  parser.add_argument("--src_tok_file", type=str, default=None, help="src_tok_file")  
+  parser.add_argument("--src_tok_file", type=str, default=None, help="src_tok_file")
   parser.add_argument("--tgt_id_file", type=str, default=None, help="tgt_id_file")
   parser.add_argument("--src_id_file", type=str, default=None, help="src_id_file")
   parser.add_argument("--num_layers", type=int, default=12, help="num layers")
@@ -449,7 +451,7 @@ def main():
     type=int,
     help="The maximum total input sequence length after tokenization. Sequences longer "
     "than this will be truncated, sequences shorter will be padded.",
-  ) 
+  )
   parser.add_argument(
     "--max_query_length",
     default=64,
@@ -479,7 +481,7 @@ def main():
                       level = logging.INFO)
   logging.info("Input args: %r" % args)
 
-  # Setup CUDA, GPU 
+  # Setup CUDA, GPU
   device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
   args.n_gpu = torch.cuda.device_count()
   args.device = device
@@ -514,7 +516,7 @@ def main():
             logger.info('cand2score_file {} exists'.format(cand2score_file))
           else:
             x = load_embeddings(f'{prefix}.{SL}.emb_{idx}.npy')
-            y = load_embeddings(f'{prefix}.{TL}.emb_{idx}.npy') 
+            y = load_embeddings(f'{prefix}.{TL}.emb_{idx}.npy')
             mine_bitext(x, y, f'{prefix}.{SL}.txt', f'{prefix}.{TL}.txt', cand2score_file, dist=args.dist, use_shift_embeds=args.use_shift_embeds)
           gold_file = f'{prefix}.gold'
           if os.path.exists(gold_file):
@@ -732,7 +734,7 @@ def main():
     tgt_text_file = os.path.join(args.data_dir, 'tatoeba.{}-eng.eng'.format(src_lang2))
     src_tok_file = os.path.join(args.output_dir, 'tatoeba.{}-eng.tok.{}'.format(src_lang2, src_lang2))
     tgt_tok_file = os.path.join(args.output_dir, 'tatoeba.{}-eng.tok.eng'.format(src_lang2))
-    
+
     all_src_embeds = extract_embeddings(args, src_text_file, src_tok_file, None, lang=src_lang2)
     all_tgt_embeds = extract_embeddings(args, tgt_text_file, tgt_tok_file, None, lang=tgt_lang2)
 
@@ -746,7 +748,7 @@ def main():
       with open(os.path.join(args.output_dir, f'test_{src_lang2}_predictions.txt'), 'w') as fout:
         for p in predictions:
           fout.write(str(p) + '\n')
-          
+
 
 main()
 

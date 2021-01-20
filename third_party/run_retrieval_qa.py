@@ -545,7 +545,7 @@ def main():
   parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
   parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the dev set.")
   parser.add_argument(
-    "--evaluate_during_training", action="store_true", help="Rul evaluation during training at each logging step."
+    "--evaluate_during_training", action="store_true", help="Run evaluation during training at each logging step."
   )
   parser.add_argument(
     "--do_lower_case", action="store_true", help="Set this flag if you are using an uncased model."
@@ -677,6 +677,10 @@ def main():
     torch.distributed.barrier()
 
   args.model_type = args.model_type.lower()
+
+  if args.model_type == "xlmr-retrieval":
+    raise NotImplementedError()
+
   config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
 
   config = config_class.from_pretrained(
