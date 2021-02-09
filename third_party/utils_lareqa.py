@@ -1,7 +1,6 @@
 import collections
 import os
 import numpy as np
-import sklearn
 
 class Question():
   """Question class holding information about a single question.
@@ -345,8 +344,23 @@ def chunks(lst, size):
   for i in range(0, len(lst), size):
     yield lst[i:i + size]
 
-def mean_avg_prec(question_set, candidate_set):
-  """Computes mAP on question_set and candidate_set with encodings."""
+
+def average_precision_at_k(targets, ranked_predictions, k=None):
+  """Computes AP@k given targets and ranked predictions."""
+  if k:
+    ranked_predictions = ranked_predictions[:k]
+  score = 0.0
+  hits = 0.0
+  for i, pred in enumerate(ranked_predictions):
+    if pred in targets and pred not in ranked_predictions[:i]:
+      hits += 1.0
+      score += hits / (i + 1.0)
+  divisor = min(len(targets), k) if k else len(targets)
+  return score / divisor
+
+
+def mean_avg_prec_at_k(question_set, candidate_set, k=None):
+  """Computes mAP@k on question_set and candidate_set with encodings."""
   # TODO(umaroy): add test for this method on a known set of encodings.
   # Current run_xreqa_eval.sh with X_Y encodings generates mAP of 0.628.
   all_questions = question_set.as_list()
@@ -356,7 +370,7 @@ def mean_avg_prec(question_set, candidate_set):
         [np.expand_dims(i.encoding[embedding_type], 0) for i in all_candidates],
         axis=0)
 
-    avg_prec = []
+    ap_scores = []
     for q in all_questions:
       question_vec = np.expand_dims(q.encoding, 0)
       scores = question_vec.dot(candidate_matrix.T)
@@ -364,6 +378,6 @@ def mean_avg_prec(question_set, candidate_set):
       all_correct_cands = set(candidate_set.by_xling_id[q.xling_id])
       for ans in all_correct_cands:
         y_true[candidate_set.pos[ans]] = 1
-      avg_prec.append(
-          sklearn.metrics.average_precision_score(y_true, np.squeeze(scores)))
-    print(embedding_type + ": " + str(np.mean(avg_prec)))
+      ap_scores.append(average_precision_at_k(
+          np.where(y_true == 1)[0], np.squeeze(scores).argsort()[::-1], k))
+    print(embedding_type + ": " + str(np.mean(ap_scores)))

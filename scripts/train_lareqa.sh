@@ -46,33 +46,6 @@ mkdir -p $MODEL_DIR
 
 export CUDA_VISIBLE_DEVICES=$GPU
 
-REPO=$PWD
-MODEL=${1:-bert-base-multilingual-cased}
-GPU=${2:-0}
-DATA_DIR=${3:-"$REPO/download/"}
-OUT_DIR=${4:-"$REPO/outputs/"}
-
-TASK='lareqa'
-
-MAX_SEQ_LEN=352  # Total sequence length (query + answer)
-MAX_QUERY_LEN=96
-MAX_ANSWER_LEN=256
-LR=5e-5
-NUM_EPOCHS=3.0
-
-if [ $MODEL == "bert-base-multilingual-cased" ]; then
-  MODEL_TYPE="bert-retrieval"
-  DO_LOWER_CASE=""
-elif [ $MODEL == "xlm-roberta-large" ]; then
-  MODEL_TYPE="xlmr-retrieval"
-  DO_LOWER_CASE="--do_lower_case"
-fi
-
-MODEL_DIR=$OUT_DIR/$TASK/${MODEL}_LR${LR}_EPOCH${NUM_EPOCHS}_LEN${MAX_SEQ_LEN}
-mkdir -p $MODEL_DIR
-
-export CUDA_VISIBLE_DEVICES=$GPU
-
 python third_party/run_retrieval_qa.py \
   --model_type $MODEL_TYPE \
   --model_name_or_path $MODEL \

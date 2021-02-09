@@ -38,8 +38,7 @@ from transformers import (
 from bert import BertForRetrieval
 from processors.utils import InputFeatures
 from utils_retrieve import mine_bitext, bucc_eval, similarity_search
-from utils_lareqa import load_data as lareqa_load_data
-from utils_lareqa import mean_avg_prec as lareqa_mean_avg_prec
+import utils_lareqa
 from xlm_roberta import XLMRobertaConfig, XLMRobertaForRetrieval, XLMRobertaModel
 
 
@@ -539,7 +538,7 @@ def main():
       with open(os.path.join(squad_dir, filename), "r") as f:
         squad_per_lang[language] = json.load(f)
       print("Loaded %s" % filename)
-    question_set, candidate_set = lareqa_load_data(squad_per_lang)
+    question_set, candidate_set = utils_lareqa.load_data(squad_per_lang)
 
     # root directory where the outputs will be stored.
     root = args.output_dir
@@ -612,9 +611,9 @@ def main():
     with open(os.path.join(root, "candidate_encodings_sentences_and_contexts.npz"), "wb") as f:
       np.save(f, np.array(list(c_id2embed_sentences_and_contexts.values())))
 
-    print(question_set, candidate_set)
     print("*" * 10)
-    lareqa_mean_avg_prec(question_set, candidate_set)
+    utils_lareqa.mean_avg_prec_at_k(
+        question_set, candidate_set, k=20)
     print("*" * 10)
   elif args.task_name == 'wikinews_el':
     base_output_path = os.path.join(args.output_dir, 'wikinews_el')

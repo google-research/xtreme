@@ -22,7 +22,7 @@ GPU=${2:-0}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
 # Select a checkpoint based on validation performance.
-CHECKPOINT=${5:-checkpoint-1000}
+CHECKPOINT=${5:-checkpoint-9000}
 
 TASK='lareqa'
 
@@ -44,9 +44,9 @@ elif [ $MODEL == "xlm-roberta-large" ]; then
 fi
 
 MODEL_DIR=$OUT_DIR/$TASK/${MODEL}_LR${LR}_EPOCH${NUM_EPOCHS}_LEN${MAX_SEQ_LEN}
-
-# Select a checkpoint output by train_lareqa.sh
 MODEL_PATH=$MODEL_DIR/$CHECKPOINT
+OUTPUT_DIR=$MODEL_DIR/eval_$CHECKPOINT
+mkdir -p $OUTPUT_DIR
 
 export CUDA_VISIBLE_DEVICES=$GPU
 
@@ -61,7 +61,7 @@ python $REPO/third_party/evaluate_retrieval.py \
   --max_query_length $MAX_QUERY_LEN \
   --max_answer_length $MAX_ANSWER_LEN \
   --data_dir $DATA_DIR \
-  --output_dir $MODEL_DIR \
+  --output_dir $OUTPUT_DIR \
   --extract_embeds \
   --dist cosine \
   $DO_LOWER_CASE

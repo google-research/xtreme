@@ -43,8 +43,12 @@ def retrieval_squad_convert_example_to_features(example,
         pad_to_max_length=True,
     )
     a_features = tokenizer.encode_plus(
-        example.sentence_text,
-        example.paragraph_text,
+        # Note, this concatenation of sentence and paragraph matches the
+        # current preprocessing in evaluate_retrieval.py.
+        # TODO(nconstant): Adjust preprocessing here and in
+        # evaluate_retrieval.py to pass sentence and paragraph as separate
+        # inputs to encode_plus().
+        (example.sentence_text + example.paragraph_text).replace("\n", ""),
         max_length=max_answer_length,
         pad_to_max_length=True
     )
