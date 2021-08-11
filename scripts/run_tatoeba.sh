@@ -41,10 +41,12 @@ elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
   LAYER=13
 fi
 
+# Add fine-tuned model path here
+MODEL=/mnt/disk-1/models/squad/xlm-roberta-large_LR3e-5_EPOCH2.0_maxlen384_batchsize2_gradacc16
 
 OUT=$OUT_DIR/$TASK/${MODEL}_${MAXL}/
 mkdir -p $OUT
-for SL in ar he vi id jv tl eu ml ta te af nl en de el bn hi mr ur fa fr it pt es bg ru ja ka ko th sw zh kk tr et fi hu; do
+for SL in ar he vi id jv tl eu ml ta te af nl en de el bn hi mr ur fa fr it pt es bg ru ja ka ko th sw zh kk tr et fi hu az lt pl uk ro; do
   python $REPO/third_party/evaluate_retrieval.py \
     --model_type $MODEL_TYPE \
     --model_name_or_path $MODEL \

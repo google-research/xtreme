@@ -228,4 +228,22 @@ if __name__ == '__main__':
   args = parser.parse_args()
   overall_scores, detailed_scores = evaluate(args.prediction_folder, args.label_folder, args.verbose)
   overall_scores.update(detailed_scores)
-  print(json.dumps(overall_scores))
+  for task, task_dict in overall_scores.items():
+    print('====== %s ======\n' % task)
+    metrics = []
+    for metric, metric_dict in task_dict.items():
+      if metric.startswith('avg'):
+        continue
+      print('------ %s ------' % metric)
+      langs, scores = [], []
+      for lang, score in metric_dict.items():
+        langs.append(lang)
+        scores.append('%.2f' % score)
+      print(', '.join(langs))
+      print(', '.join(scores))
+      print()
+      metrics.append(metric)
+    metrics.append('metric')
+    for metric in metrics:
+      avg_score = task_dict['avg_%s' % metric]
+      print('%s: %.2f' % (metric, avg_score))

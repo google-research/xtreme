@@ -16,11 +16,18 @@
 # Script to obtain predictions using a trained model on XQuAD, TyDi QA, and MLQA.
 REPO=$PWD
 MODEL=${1:-bert-base-multilingual-cased}
-MODEL_TYPE=${2:-bert}
-MODEL_PATH=${3}
-TGT=${4:-xquad}
-GPU=${5:-0}
-DATA_DIR=${6:-"$REPO/download/"}
+MODEL_PATH=${2}
+TGT=${3:-xquad}
+GPU=${4:-0}
+DATA_DIR=${5:-"$REPO/download/"}
+
+if [ $MODEL == "bert-base-multilingual-cased" ]; then
+  MODEL_TYPE="bert"
+elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]; then
+  MODEL_TYPE="xlm"
+elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
+  MODEL_TYPE="xlm-roberta"
+fi
 
 if [ ! -d "${MODEL_PATH}" ]; then
   echo "Model path ${MODEL_PATH} does not exist."
@@ -28,7 +35,7 @@ if [ ! -d "${MODEL_PATH}" ]; then
 fi
 
 DIR=${DATA_DIR}/${TGT}/
-PREDICTIONS_DIR=${REPO}/predictions
+PREDICTIONS_DIR=${MODEL_PATH}/predictions
 PRED_DIR=${PREDICTIONS_DIR}/$TGT/
 mkdir -p "${PRED_DIR}"
 
@@ -53,16 +60,19 @@ for lang in ${langs[@]}; do
   elif [ $TGT == 'mlqa' ]; then
     TEST_FILE=${DIR}/MLQA_V1/test/test-context-$lang-question-$lang.json
   elif [ $TGT == 'tydiqa' ]; then
-    TEST_FILE=${DIR}/tydiqa-goldp-v1.1-dev/tydiqa.$lang.dev.json
+    TEST_FILE=${DIR}/tydiqa-goldp-v1.1-dev/tydiqa.goldp.$lang.dev.json
   fi
 
   CUDA_VISIBLE_DEVICES=${GPU} python third_party/run_squad.py \
     --model_type ${MODEL_TYPE} \
     --model_name_or_path ${MODEL_PATH} \
     --do_eval \
-    --do_lower_case \
     --eval_lang ${lang} \
     --predict_file "${TEST_FILE}" \
     --output_dir "${PRED_DIR}" &> /dev/null
 done
 
+# Rename files to test pattern
+for lang in ${langs[@]}; do
+  mv $PRED_DIR/predictions_${lang}_.json $PRED_DIR/test-$lang.json
+done

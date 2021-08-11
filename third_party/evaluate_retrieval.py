@@ -718,7 +718,8 @@ def main():
     'tam':'ta', 'fra':'fr', 'ita':'it', 'por':'pt', 'spa':'es',
     'bul':'bg', 'rus':'ru', 'jpn':'ja', 'kat':'ka', 'kor':'ko',
     'tha':'th', 'swh':'sw', 'cmn':'zh', 'kaz':'kk', 'tur':'tr',
-    'est':'et', 'fin':'fi', 'hun':'hu', 'pes':'fa'}
+    'est':'et', 'fin':'fi', 'hun':'hu', 'pes':'fa', 'aze': 'az',
+    'lit': 'lt','pol': 'pl', 'ukr': 'uk', 'ron': 'ro'}
     lang2_dict = {l2: l3 for l3, l2 in lang3_dict.items()}
 
     src_lang2 = args.src_language

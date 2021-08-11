@@ -59,11 +59,11 @@ function download_udpos {
     out_dir=$base_dir/conll/
     mkdir -p $out_dir
     cd $base_dir
-    curl -s --remote-name-all https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3105/ud-treebanks-v2.5.tgz
-    tar -xzf $base_dir/ud-treebanks-v2.5.tgz
+    curl -s --remote-name-all https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3424/ud-treebanks-v2.7.tgz
+    tar -xzf $base_dir/ud-treebanks-v2.7.tgz
 
-    langs=(af ar bg de el en es et eu fa fi fr he hi hu id it ja kk ko mr nl pt ru ta te th tl tr ur vi yo zh)
-    for x in $base_dir/ud-treebanks-v2.5/*/*.conllu; do
+    langs=(af ar bg de el en es et eu fa fi fr he hi hu id it ja kk ko mr nl pt ru ta te th tl tr ur vi yo zh lt pl uk wo ro)
+    for x in $base_dir/ud-treebanks-v2.7/*/*.conllu; do
         file="$(basename $x)"
         IFS='_' read -r -a array <<< "$file"
         lang=${array[0]}
@@ -91,7 +91,7 @@ function download_panx {
         base_dir=$DIR/panx_dataset/
         unzip -qq -j $DIR/AmazonPhotos.zip -d $base_dir
         cd $base_dir
-        langs=(ar he vi id jv ms tl eu ml ta te af nl en de el bn hi mr ur fa fr it pt es bg ru ja ka ko th sw yo my zh kk tr et fi hu)
+        langs=(ar he vi id jv ms tl eu ml ta te af nl en de el bn hi mr ur fa fr it pt es bg ru ja ka ko th sw yo my zh kk tr et fi hu qu pl uk az lt pa gu ro)
         for lg in ${langs[@]}; do
             tar xzf $base_dir/${lg}.tar.gz
             for f in dev test train; do mv $base_dir/$f $base_dir/${lg}-${f}; done
@@ -186,6 +186,35 @@ function download_tydiqa {
     echo "Successfully downloaded data at $DIR/tydiqa" >> $DIR/download.log
 }
 
+function download_xcopa {
+    echo "download xcopa"
+    langs=(et ht id it qu sw ta th tr vi zh)
+    base_dir=$DIR/xcopa/
+    mkdir -p $base_dir && cd $base_dir
+    wget https://dl.fbaipublicfiles.com/glue/superglue/data/v2/COPA.zip
+    unzip COPA.zip
+    for split in train val test; do
+      mv COPA/${split}.jsonl ${split}.en.jsonl
+    done
+    rm -r -f COPA.zip COPA
+    for lang in ${langs[@]}; do
+      wget https://raw.githubusercontent.com/cambridgeltl/xcopa/master/data/${lang}/val.${lang}.jsonl -q --show-progress
+      wget https://raw.githubusercontent.com/cambridgeltl/xcopa/master/data/${lang}/test.${lang}.jsonl -q --show-progress
+    done
+    echo "Successfully downloaded data at $DIR/xcopa" >> $DIR/download.log
+}
+
+function download_siqa {
+    echo "download siqa"
+    base_dir=$DIR/siqa/
+    mkdir -p $base_dir && cd $base_dir
+    siqa_file=socialIQa_v1.4.tgz
+    wget https://maartensap.github.io/social-iqa/data/${siqa_file}
+    tar -xf ${siqa_file}
+    rm ${siqa_file}
+    echo "Successfully downloaded data at $DIR/siqa" >> $DIR/download.log
+}
+
 download_xnli
 download_pawsx
 download_tatoeba
@@ -196,3 +225,5 @@ download_mlqa
 download_tydiqa
 download_udpos
 download_panx
+download_xcopa
+download_siqa

@@ -21,7 +21,7 @@ OUT_DIR=${4:-"$REPO/outputs/"}
 
 TASK='udpos'
 export CUDA_VISIBLE_DEVICES=$GPU
-LANGS='af,ar,bg,de,el,en,es,et,eu,fa,fi,fr,he,hi,hu,id,it,ja,kk,ko,mr,nl,pt,ru,ta,te,th,tl,tr,ur,vi,yo,zh'
+LANGS='af,ar,bg,de,el,en,es,et,eu,fa,fi,fr,he,hi,hu,id,it,ja,kk,ko,mr,nl,pt,ru,ta,te,th,tl,tr,ur,vi,yo,zh,lt,pl,uk,ro'
 NUM_EPOCHS=10
 MAX_LENGTH=128
 LR=2e-5
@@ -45,7 +45,7 @@ else
 fi
 
 DATA_DIR=$DATA_DIR/$TASK/${TASK}_processed_maxlen${MAX_LENGTH}/
-OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}-LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}/"
+OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}-LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}"
 mkdir -p $OUTPUT_DIR
 python3 $REPO/third_party/run_tag.py \
   --data_dir $DATA_DIR \

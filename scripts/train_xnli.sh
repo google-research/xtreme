@@ -39,9 +39,11 @@ fi
 if [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-roberta-large" ]; then
   BATCH_SIZE=2
   GRAD_ACC=16
+  LR=3e-5
 else
   BATCH_SIZE=8
   GRAD_ACC=4
+  LR=2e-5
 fi
 
 SAVE_DIR="$OUT_DIR/$TASK/${MODEL}-LR${LR}-epoch${EPOCH}-MaxLen${MAXL}/"
