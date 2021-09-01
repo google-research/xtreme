@@ -493,7 +493,7 @@ def main():
       prefix = os.path.join(args.output_dir, f'{SL}-{TL}.{split}')
       if args.extract_embeds:
         for lang in [SL, TL]:
-          extract_embeddings(args, f'{prefix}.{lang}.txt', f'{prefix}.{lang}.tok', f'{prefix}.{lang}.emb', lang=lang, pool_type=args.pool_type)
+          extract_embeddings(args, f'{prefix}.{lang}.txt', f'{prefix}.{lang}.tok', f'{prefix}.{lang}.emb', lang=lang)
 
       if args.mine_bitext:
         num_layers = args.num_layers
@@ -729,8 +729,8 @@ def main():
     src_tok_file = os.path.join(args.output_dir, 'tatoeba.{}-eng.tok.{}'.format(src_lang2, src_lang2))
     tgt_tok_file = os.path.join(args.output_dir, 'tatoeba.{}-eng.tok.eng'.format(src_lang2))
 
-    all_src_embeds = extract_embeddings(args, src_text_file, src_tok_file, None, lang=src_lang2, pool_type=args.pool_type)
-    all_tgt_embeds = extract_embeddings(args, tgt_text_file, tgt_tok_file, None, lang=tgt_lang2, pool_type=args.pool_type)
+    all_src_embeds = extract_embeddings(args, src_text_file, src_tok_file, None, lang=src_lang2)
+    all_tgt_embeds = extract_embeddings(args, tgt_text_file, tgt_tok_file, None, lang=tgt_lang2)
 
     idx = list(range(1, len(all_src_embeds) + 1, 4))
     best_score = 0
