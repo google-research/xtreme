@@ -249,9 +249,9 @@ def bucc_optimize(candidate2score, gold):
   return threshold
 
 
-def bucc_extract(cand2score, th, fname):
+def bucc_extract(cand2score, th, fname, encoding='utf-8'):
   if fname:
-    of = open(fname, 'w', encoding=args.encoding)
+    of = open(fname, 'w', encoding=encoding)
   bitexts = []
   for (src, trg), score in cand2score.items():
     if score >= th:
