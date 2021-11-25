@@ -55,7 +55,7 @@ for SL in fr ru zh de; do
   done
 
   CP="candidates"
-  python $REPO/third_party/run_retrieval.py \
+  python $REPO/third_party/evaluate_retrieval.py \
     --model_type $MODEL_TYPE \
     --model_name_or_path $MODEL \
     --embed_size $DIM \
