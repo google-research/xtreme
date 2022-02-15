@@ -53,17 +53,33 @@ function download_pawsx {
     echo "Successfully downloaded data at $DIR/pawsx" >> $DIR/download.log
 }
 
-# download UD-POS dataset
-function download_udpos {
-    base_dir=$DIR/udpos-tmp
-    out_dir=$base_dir/conll/
-    mkdir -p $out_dir
-    cd $base_dir
-    curl -s --remote-name-all https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3424/ud-treebanks-v2.7.tgz
-    tar -xzf $base_dir/ud-treebanks-v2.7.tgz
 
-    langs=(af ar bg de el en es et eu fa fi fr he hi hu id it ja kk ko mr nl pt ru ta te th tl tr ur vi yo zh lt pl uk wo ro)
-    for x in $base_dir/ud-treebanks-v2.7/*/*.conllu; do
+# Helper function to download the UD-POS data.
+# In order to ensure backwards compatibility with the XTREME evaluation,
+# languages in XTREME use the UD version used in the original paper; for the new
+# languages in XTREME-R, we use a more recent UD version.
+function download_treebank {
+    base_dir=$2
+    out_dir=$3
+    if [ $1 == "xtreme" ]; then
+      url=https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3105/ud-treebanks-v2.5.tgz
+      langs=(af ar bg de el en es et eu fa fi fr he hi hu id it ja kk ko mr nl pt ru ta te th tl tr ur vi yo zh)
+      ud_version="2.5"
+    elif [ $1 == "xtreme-r" ]; then
+      url=https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3424/ud-treebanks-v2.7.tgz
+      langs=(lt pl uk wo ro)
+      ud_version="2.7"
+    else
+      echo "$1 is not an accepted argument for downloading the treebank. Accepted values: xtreme, xtreme-r"
+      exit 0
+    fi
+    echo $1
+    echo "$url"
+    curl -s --remote-name-all "$url"
+
+    tar -xzf $base_dir/ud-treebanks-v$ud_version.tgz
+
+    for x in $base_dir/ud-treebanks-v$ud_version/*/*.conllu; do
         file="$(basename $x)"
         IFS='_' read -r -a array <<< "$file"
         lang=${array[0]}
@@ -79,6 +95,17 @@ function download_udpos {
             fi
         fi
     done
+}
+
+# Download UD-POS dataset.
+function download_udpos {
+    base_dir=$DIR/udpos-tmp
+    out_dir=$base_dir/conll/
+    mkdir -p $out_dir
+    cd $base_dir
+
+    download_treebank xtreme $base_dir $out_dir
+    download_treebank xtreme-r $base_dir $out_dir
 
     python $REPO/utils_preprocess.py --data_dir $out_dir/ --output_dir $DIR/udpos/ --task  udpos
     rm -rf $out_dir ud-treebanks-v2.tgz $DIR/udpos-tmp
@@ -104,7 +131,7 @@ function download_panx {
         rm -rf $base_dir
         echo "Successfully downloaded data at $DIR/panx" >> $DIR/download.log
     else
-        echo "Please download the AmazonPhotos.zip file on Amazon Cloud Drive mannually and save it to $DIR/AmazonPhotos.zip"
+        echo "Please download the AmazonPhotos.zip file on Amazon Cloud Drive manually and save it to $DIR/AmazonPhotos.zip"
         echo "https://www.amazon.com/clouddrive/share/d3KGCRCIYwhKJF0H3eWA26hjg2ZCRhjpEQtDL70FSBN"
     fi
 }

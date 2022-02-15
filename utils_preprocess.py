@@ -32,7 +32,7 @@ TOKENIZERS = {
 }
 
 PANX_LANGUAGES = 'ar he vi id jv ms tl eu ml ta te af nl en de el bn hi mr ur fa fr it pt es bg ru ja ka ko th sw yo my zh kk tr et fi hu qu pl uk az lt pa gu ro'.split(' ')
-UDPOS_LANGUAGES = 'af ar bg de el en es et eu fa fi fr he hi hu id it ja kk ko mr nl pt ru ta te th tl tr ur vi yo zh'.split(' ')
+UDPOS_LANGUAGES = 'af ar bg de el en es et eu fa fi fr he hi hu id it ja kk ko mr nl pt ru ta te th tl tr ur vi yo zh lt pl uk wo ro'.split(' ')
 
 def panx_tokenize_preprocess(args):
   def _preprocess_one_file(infile, outfile, idxfile, tokenizer, max_len):

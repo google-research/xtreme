@@ -20,8 +20,8 @@ import os
 from absl.testing import absltest
 from absl.testing import parameterized
 from xtreme.evaluate import evaluate_one_task
-from xtreme.evaluate import GROUP2TASK
-from xtreme.evaluate import TASK2LANGS
+from xtreme.evaluate import XTREME_GROUP2TASK
+from xtreme.evaluate import XTREME_TASK2LANGS
 
 DATA_DIR = './/mock_test_data'
 
@@ -56,9 +56,9 @@ class EvaluateTest(parameterized.TestCase):
       ('TyDiQA', 'tydiqa'))
   def testTask(self, task):
     data_dir = os.path.join(absltest.get_default_test_srcdir(), DATA_DIR)
-    suffix = 'json' if task in GROUP2TASK['qa'] else 'tsv'
+    suffix = 'json' if task in XTREME_GROUP2TASK['qa'] else 'tsv'
     score = collections.defaultdict(dict)
-    for lg in TASK2LANGS[task]:
+    for lg in XTREME_TASK2LANGS[task]:
       pred_file = os.path.join(data_dir, 'predictions', task,
                                f'test-{lg}.{suffix}')
       label_file = os.path.join(data_dir, 'labels', task, f'test-{lg}.{suffix}')
