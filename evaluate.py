@@ -59,6 +59,17 @@ def read_squad(file):
       return dataset_json
 
 
+def read_xcopa(file):
+  """Read XCOPA data."""
+  labels = []
+  with open(file) as f:
+    for row in f:
+      data = json.loads(row)
+      label = data['label']
+      labels.append(label)
+  return labels
+
+
 def f1(labels, predictions, language=None):
   f1_val = f1_score(labels, predictions)
   prec = precision_score(labels, predictions)
@@ -110,6 +121,7 @@ XTREME_R_GROUP2TASK = {
     'tagging': ['udpos', 'panx'],
     'qa': ['xquad', 'mlqa', 'tydiqa'],
     'retrieval': ['tatoeba'],
+    'multi_choice': ['xcopa'],
 }
 
 
@@ -173,6 +185,7 @@ READER_FUNCTION = {
     'xquad': read_squad,
     'mlqa': read_squad,
     'tydiqa': read_squad,
+    'xcopa': read_xcopa,
 }
 
 
@@ -186,6 +199,7 @@ METRIC_FUNCTION = {
     'xquad': squad_em_f1,
     'mlqa': mlqa_em_f1,
     'tydiqa': squad_em_f1,
+    'xcopa': accuracy,
 }
 
 
@@ -236,7 +250,12 @@ def evaluate(prediction_folder, label_folder, xtreme_version, verbose=False):
   detailed_scores = {}
   for task, langs in task2langs.items():
     if task in prediction_tasks and task in label_tasks:
-      suffix = 'json' if task in group2task['qa'] else 'tsv'
+      if task in group2task['qa']:
+        suffix = 'json'
+      elif 'multi_choice' in group2task and task in group2task['multi_choice']:
+        suffix = 'jsonl'
+      else:
+        suffix = 'tsv'
       # collect scores over all languages
       score = collections.defaultdict(dict)
       for lg in langs:

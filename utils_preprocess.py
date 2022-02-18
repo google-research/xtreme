@@ -489,6 +489,27 @@ def remove_qa_test_annotations(test_dir):
       json.dump({'data': new_data, 'version': version}, f)
 
 
+def xcopa_preprocess(args):
+  assert os.path.exists(args.data_dir)
+  # Remove the test annotations to prevent accidental cheating
+  for file_name in os.listdir(args.data_dir):
+    if not file_name.startswith('test'):
+      continue
+    test_file = os.path.join(args.data_dir, file_name)
+    new_examples = []
+    with open(test_file, 'r') as f:
+      for row in f:
+        example = json.loads(row)
+        # A label is still required by the dataset format, so we set it to 0
+        # for all examples
+        example['label'] = 0
+        new_examples.append(example)
+    with open(test_file, 'w') as f:
+      for example in new_examples:
+        json_ex = json.dumps(example)
+        f.write(json_ex + '\n')
+
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
@@ -537,3 +558,5 @@ if __name__ == "__main__":
     mlqa_preprocess(args)
   if args.task == 'tydiqa':
     tydiqa_preprocess(args)
+  if args.task == 'xcopa':
+    xcopa_preprocess(args)

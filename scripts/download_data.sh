@@ -221,13 +221,16 @@ function download_xcopa {
     wget https://dl.fbaipublicfiles.com/glue/superglue/data/v2/COPA.zip
     unzip COPA.zip
     for split in train val test; do
-      mv COPA/${split}.jsonl ${split}.en.jsonl
+      mv COPA/${split}.jsonl ${split}-en.jsonl
     done
     rm -r -f COPA.zip COPA
     for lang in ${langs[@]}; do
       wget https://raw.githubusercontent.com/cambridgeltl/xcopa/master/data/${lang}/val.${lang}.jsonl -q --show-progress
       wget https://raw.githubusercontent.com/cambridgeltl/xcopa/master/data/${lang}/test.${lang}.jsonl -q --show-progress
+      mv $base_dir/val.${lang}.jsonl $base_dir/val-${lang}.jsonl
+      mv $base_dir/test.${lang}.jsonl $base_dir/test-${lang}.jsonl
     done
+    python $REPO/utils_preprocess.py --data_dir $base_dir --output_dir $base_dir --task xcopa
     echo "Successfully downloaded data at $DIR/xcopa" >> $DIR/download.log
 }
 
