@@ -25,6 +25,7 @@ from seqeval.metrics import precision_score
 from seqeval.metrics import recall_score
 from third_party.evaluate_mlqa import evaluate as mlqa_eval
 from third_party.evaluate_squad import evaluate as squad_eval
+from third_party.utils_mewslix import evaluate as mewslix_eval
 
 
 def read_tag(file):
@@ -108,6 +109,12 @@ def mlqa_em_f1(labels, predictions, language):
   return mlqa_eval(labels, predictions, language)
 
 
+def mewslix_map20(labels, predictions, language=None):
+  del language
+  mrr = mewslix_eval(labels, predictions, k=20)
+  return {'map@20': mrr * 100}
+
+
 XTREME_GROUP2TASK = {
     'classification': ['pawsx', 'xnli'],
     'tagging': ['udpos', 'panx'],
@@ -120,7 +127,7 @@ XTREME_R_GROUP2TASK = {
     'classification': ['xnli', 'xcopa'],
     'tagging': ['udpos', 'panx'],
     'qa': ['xquad', 'mlqa', 'tydiqa'],
-    'retrieval': ['tatoeba'],
+    'retrieval': ['tatoeba', 'mewslix'],
     'multi_choice': ['xcopa'],
 }
 
@@ -162,7 +169,7 @@ XTREME_R_TASK2LANGS = {
                'ro'.split(','),
     'xcopa': 'et,ht,id,it,qu,sw,ta,th,tr,vi,zh'.split(','),
     'lareqa': [],
-    'mewslix': [],
+    'mewslix': 'ar,de,en,es,fa,ja,pl,ro,ta,tr,uk'.split(','),
     'xquad': 'en,es,de,el,ru,tr,ar,vi,th,zh,hi,ro'.split(','),
     'mlqa': 'en,es,de,ar,hi,vi,zh'.split(','),
     'tydiqa': 'en,ar,bn,fi,id,ko,ru,sw,te'.split(','),
@@ -183,6 +190,7 @@ READER_FUNCTION = {
     'bucc2018': read_label,
     'tatoeba': read_label,
     'xquad': read_squad,
+    'mewslix': read_squad,
     'mlqa': read_squad,
     'tydiqa': read_squad,
     'xcopa': read_xcopa,
@@ -197,6 +205,7 @@ METRIC_FUNCTION = {
     'bucc2018': bucc_f1,
     'tatoeba': accuracy,
     'xquad': squad_em_f1,
+    'mewslix': mewslix_map20,
     'mlqa': mlqa_em_f1,
     'tydiqa': squad_em_f1,
     'xcopa': accuracy,
@@ -219,12 +228,21 @@ def evaluate_one_task(prediction_file, label_file, task, language=None):
   """
   predictions = READER_FUNCTION[task](prediction_file)
   labels = READER_FUNCTION[task](label_file)
-  if task not in ['bucc2018', 'mlqa', 'tydiqa', 'xquad']:
+  if task not in ['bucc2018', 'mewslix', 'mlqa', 'tydiqa', 'xquad']:
     assert len(predictions) == len(labels), (
         'Number of examples in {} and {} not matched in {} task'.format(
             prediction_file, label_file, task))
   result = METRIC_FUNCTION[task](labels, predictions, language)
   return result
+
+
+def get_suffix(task, group2task):
+  if task in group2task['qa'] or task in ('mewslix',):
+    return 'json'
+  elif 'multi_choice' in group2task and task in group2task['multi_choice']:
+    return 'jsonl'
+  else:
+    return 'tsv'
 
 
 def evaluate(prediction_folder, label_folder, xtreme_version, verbose=False):
@@ -250,12 +268,7 @@ def evaluate(prediction_folder, label_folder, xtreme_version, verbose=False):
   detailed_scores = {}
   for task, langs in task2langs.items():
     if task in prediction_tasks and task in label_tasks:
-      if task in group2task['qa']:
-        suffix = 'json'
-      elif 'multi_choice' in group2task and task in group2task['multi_choice']:
-        suffix = 'jsonl'
-      else:
-        suffix = 'tsv'
+      suffix = get_suffix(task, group2task)
       # collect scores over all languages
       score = collections.defaultdict(dict)
       for lg in langs:

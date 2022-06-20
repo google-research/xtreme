@@ -20,12 +20,15 @@ import os
 from absl.testing import absltest
 from absl.testing import parameterized
 from xtreme.evaluate import evaluate_one_task
+from xtreme.evaluate import get_suffix
 from xtreme.evaluate import XTREME_GROUP2TASK
+from xtreme.evaluate import XTREME_R_GROUP2TASK
+from xtreme.evaluate import XTREME_R_TASK2LANGS
 from xtreme.evaluate import XTREME_TASK2LANGS
 
 DATA_DIR = './/mock_test_data'
 
-# Mock submission scores for testing
+# Mock submission scores for testing XTREME.
 TASK2AVG_SCORES = {
     'pawsx': {'avg_accuracy': 51.42857142857143},
     'xnli': {'avg_accuracy': 30.666666666666668},
@@ -36,6 +39,24 @@ TASK2AVG_SCORES = {
     'bucc2018': {'avg_f1': 55.0, 'avg_precision': 55.0, 'avg_recall': 55.0},
     'tatoeba': {'avg_accuracy': 53.611111111111114},
     'xquad': {'avg_exact_match': 77.27272727272727, 'avg_f1': 79.9586776859504},
+    'mlqa': {'avg_exact_match': 57.142857142857146, 'avg_f1': 81.76870748299321},
+    'tydiqa': {'avg_exact_match': 88.88888888888889, 'avg_f1': 97.22222222222223}
+}
+
+# Mock submission scores for testing XTREME-R.
+  # TODO(ruder): Update data/numbers for tasks with added languages (UD-POS,
+  # PANX, Tatoeba, and XQuAD) and for new tasks (XCOPA, LAReQA).
+XTREME_R_TASK2AVG_SCORES = {
+    'xnli': {'avg_accuracy': 30.666666666666668},
+    # 'panx': {'avg_f1': 57.50793650793652, 'avg_precision': 54.729166666666664,
+    #          'avg_recall': 62.750000000000014},
+    # 'udpos': {'avg_f1': 70.21746048354693, 'avg_precision': 71.02232625883823,
+    #           'avg_recall': 69.54982073976082},
+    # 'tatoeba': {'avg_accuracy': 53.611111111111114},
+    # 'xcopa'
+    # 'lareqa'
+    'mewslix': {'avg_map@20': 14.39025156130419},
+    # 'xquad': {'avg_exact_match': 77.27272727272727, 'avg_f1': 79.9586776859504},
     'mlqa': {'avg_exact_match': 57.142857142857146, 'avg_f1': 81.76870748299321},
     'tydiqa': {'avg_exact_match': 88.88888888888889, 'avg_f1': 97.22222222222223}
 }
@@ -54,7 +75,7 @@ class EvaluateTest(parameterized.TestCase):
       ('XQuAD', 'xquad'),
       ('MLQA', 'mlqa'),
       ('TyDiQA', 'tydiqa'))
-  def testTask(self, task):
+  def testXtremeTask(self, task):
     data_dir = os.path.join(absltest.get_default_test_srcdir(), DATA_DIR)
     suffix = 'json' if task in XTREME_GROUP2TASK['qa'] else 'tsv'
     score = collections.defaultdict(dict)
@@ -70,6 +91,33 @@ class EvaluateTest(parameterized.TestCase):
       avg_score[f'avg_{m}'] = sum(score[m].values()) / len(score[m])
     self.assertEqual(avg_score, TASK2AVG_SCORES[task])
 
+
+  @parameterized.named_parameters(
+      ('XNLI', 'xnli'),
+      # ('PANX', 'panx'),
+      # ('UDPOS', 'udpos'),
+      # ('Tatoeba', 'tatoeba'),
+      # ('XCOPA', 'xcopa'),
+      # ('LAReQA', 'lareqa'),
+      ('Mewsli-X', 'mewslix'),
+      # ('XQuAD', 'xquad'),
+      ('MLQA', 'mlqa'),
+      ('TyDiQA', 'tydiqa'))
+  def testXtremeRTask(self, task):
+    data_dir = os.path.join(absltest.get_default_test_srcdir(), DATA_DIR)
+    suffix = get_suffix(task, XTREME_R_GROUP2TASK)
+    score = collections.defaultdict(dict)
+    for lg in XTREME_R_TASK2LANGS[task]:
+      pred_file = os.path.join(data_dir, 'predictions', task,
+                               f'test-{lg}.{suffix}')
+      label_file = os.path.join(data_dir, 'labels', task, f'test-{lg}.{suffix}')
+      score_lg = evaluate_one_task(pred_file, label_file, task, language=lg)
+      for metric in score_lg:
+        score[metric][lg] = score_lg[metric]
+    avg_score = {}
+    for m in score:
+      avg_score[f'avg_{m}'] = sum(score[m].values()) / len(score[m])
+    self.assertEqual(avg_score, XTREME_R_TASK2AVG_SCORES[task])
 
 if __name__ == '__main__':
   absltest.main()
