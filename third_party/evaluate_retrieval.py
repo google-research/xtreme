@@ -19,6 +19,7 @@ import argparse
 
 import collections
 import glob
+import itertools
 import logging
 import os
 import random
@@ -39,6 +40,7 @@ from bert import BertForRetrieval
 from processors.utils import InputFeatures
 from utils_retrieve import mine_bitext, bucc_eval, similarity_search
 import utils_lareqa
+import utils_mewslix
 from xlm_roberta import XLMRobertaConfig, XLMRobertaForRetrieval, XLMRobertaModel
 
 
@@ -64,8 +66,8 @@ def load_embeddings(embed_file, num_sentences=None):
   logger.info(' loading from {}'.format(embed_file))
   embeds = np.load(embed_file)
   return embeds
-
-
+  
+  
 def prepare_batch(sentences, tokenizer, model_type, device="cuda", max_length=512, lang='en', langid=None, use_local_max_length=True, pool_skip_special_token=False):
   pad_token = tokenizer.pad_token
   cls_token = tokenizer.cls_token
@@ -229,7 +231,7 @@ def extract_encodings(args, text_file, tok_file, embed_file, lang='en',
   if os.path.exists(embed_file_path):
     logger.info('loading file from {}'.format(embed_file_path))
     return load_embeddings(embed_file_path)
-
+    
   config, model, tokenizer, langid = load_model(args, lang,
                                                 output_hidden_states=False)
 
@@ -304,31 +306,14 @@ def concate_embedding(all_embeds, last_k):
     embeds = np.hstack(all_embeds[-last_k:]) # (B,D)
     return embeds
 
-# TODO(jabot): Move this to a shared location for the task.
-def el_eval(queries, predictions):
-  """Evaluate entity linking.
 
-  Args:
-    queries: list of query dictionaries
-    predictions: list of prediction lists
-  Returns:
-    mean-reciprocal rank
-  """
-
-  def _reciprocal_rank(labels):
-    for rank, label in enumerate(labels, start=1):
-      if label:
-        return 1.0 / rank
-    return 0.0
-
-  assert len(queries) == len(predictions)
-
-  reciprocal_ranks = []
-  for query, prediction_list in zip(queries, predictions):
-    ground_truth = query["entity_qid"]
-    labels = [int(p == ground_truth) for p in prediction_list]
-    reciprocal_ranks.append(_reciprocal_rank(labels))
-  return np.mean(reciprocal_ranks)
+def _check_model_type_support(task_name, model_type):
+  """Checks model_type support for LAReQA and Mewsli-X tasks."""
+  if task_name in ('mewslix', 'lareqa'):
+    if model_type not in ('bert-retrieval', 'xlmr-retrieval'):
+      raise NotImplementedError(
+          f"model_type {model_type} not implemented for {task_name} task. "
+          "Implemented: 'bert-retrieval' and 'xlmr-retrieval'.")
 
 
 def main():
@@ -473,9 +458,10 @@ def main():
                       datefmt = '%m/%d/%Y %H:%M:%S',
                       level = logging.INFO)
   logging.info("Input args: %r" % args)
-
+  
   # Setup CUDA, GPU
-  device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+  device_name = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+  device = torch.device(device_name)
   args.n_gpu = torch.cuda.device_count()
   args.device = device
 
@@ -485,6 +471,7 @@ def main():
     datefmt="%m/%d/%Y %H:%M:%S",
     level=logging.INFO,
   )
+  logging.info("Torch device: %s" % device_name)
 
   if args.task_name == 'bucc2018':
     best_threshold = None
@@ -519,6 +506,7 @@ def main():
             logger.info('--Candidates: {}'.format(cand2score_file))
             logger.info('index={} '.format(suf) + ' '.join('{}={:.4f}'.format(k,v) for k,v in results.items()))
   elif args.task_name == 'lareqa':
+    _check_model_type_support(args.task_name, args.model_type)
     # The lareqa data is copied and stored here.
     base_path = os.path.join(args.data_dir, 'lareqa')
     dataset_to_dir = {
@@ -615,99 +603,141 @@ def main():
     utils_lareqa.mean_avg_prec_at_k(
         question_set, candidate_set, k=20)
     print("*" * 10)
-  elif args.task_name == 'wikinews_el':
-    base_output_path = os.path.join(args.output_dir, 'wikinews_el')
+  elif args.task_name == 'mewslix':
+    _check_model_type_support(args.task_name, args.model_type)
+    base_output_path = os.path.join(args.output_dir, 'mewslix')
+    candidates_input_file = os.path.join(args.data_dir,
+                                         "candidate_set_entities.jsonl")
+    mention_input_file = os.path.join(args.data_dir,
+                                      "wikinews_mentions-dev.jsonl")
 
-    def _read_jsonl(path):
-      """Read jsonl record from path."""
-      with open(path, "r") as fin:
-        data = [json.loads(line) for line in fin]
-        return data
-
-    # Build a single index of all candidate vectors, populated on the-fly below.
+    # Set up a single index for all candidate encoding vectors, which will
+    # use exhaustive search.
     candidate_index = faiss.IndexFlatIP(args.embed_size)
 
+    # Candidates as Entity objects. The order of this list is relied upon
+    # further below when unpacking the retrieved neighbors.
+    candidates = utils_mewslix.load_jsonl(candidates_input_file,
+                                          utils_mewslix.Entity)
+    logger.info("Loaded %d candidates.", len(candidates))
+
     # Encode candidates.
+    candidate_texts = [
+        utils_mewslix.preprocess_entity_description(entity)
+        for entity in candidates
+    ]
+    qid_to_seq_id = {entity.entity_id: seq_id
+                     for seq_id, entity in enumerate(candidates)}
+    candidate_text_file = os.path.join(args.output_dir, "candidates.txt")
+    candidate_tok_file = os.path.join(args.output_dir, "candidates.tok")
+    embed_file = os.path.join(args.output_dir, "candidates.emb")
+    with open(candidate_text_file, "w") as f:
+      for candidate_text in candidate_texts:
+        f.write("%s\n" % candidate_text)
 
-    # Split by language for encoding phase only.
-    candidates = _read_jsonl(os.path.join(args.data_dir, "candidates_1m.jsonl"))
-    logger.info("Loaded {} candidates.".format(len(candidates)))
-
-    qid2text = {c["qid"]: c["text"] for c in candidates}
-    candidates_by_lang = collections.defaultdict(list)
-    candidate_id2qid = []
-    for c in candidates:
-      candidates_by_lang[c["lang"]].append(c)
-
-    for lang, candidates_slice in candidates_by_lang.items():
-      candidate_text_file = os.path.join(args.output_dir,
-                                         f"candidates.{lang}.txt")
-      candidate_tok_file = os.path.join(args.output_dir,
-                                        f"candidates.{lang}.tok")
-      embed_file = os.path.join(args.output_dir, f"candidates.{lang}.emb")
-      with open(candidate_text_file, "w") as f:
-        for candidate in candidates_slice:
-          f.write("%s\n" % candidate["text"])
-          candidate_id2qid.append(candidate["qid"])
-
-      candidate_encodings = extract_encodings(args, candidate_text_file,
-                                              candidate_tok_file,
-                                              embed_file, lang=lang,
-                                              max_seq_length=args.max_query_length)
-      faiss.normalize_L2(candidate_encodings)
-      candidate_index.add(candidate_encodings)
-    logger.info("Candidate index size = %d" % candidate_index.ntotal)
+    # Array of [number of candidates, embed_size]
+    # (Of the model types covered by this module, only XLM requires the
+    # language code, but since an implementation of `XLMForRetrieval` is
+    # not provided, just set lang=None. Rearrange the following block if a model
+    # type needs to condition on language code.)
+    candidate_encodings = extract_encodings(args, candidate_text_file,
+                                            candidate_tok_file,
+                                            embed_file, lang=None,
+                                            max_seq_length=args.max_seq_length)
+    faiss.normalize_L2(candidate_encodings)
+    candidate_index.add(candidate_encodings)
+    logger.info("Candidate index size = %d", candidate_index.ntotal)
 
     # Encode queries.
+    mentions_dataset = utils_mewslix.load_jsonl(
+        mention_input_file, utils_mewslix.ContextualMentions)
+    mentions_dataset = list(itertools.chain.from_iterable(
+        doc_mentions.unnest_to_single_mention_per_context()
+        for doc_mentions in mentions_dataset))
+    logger.info("Loaded %d queries.", len(mentions_dataset))
 
-    # list of dictionaries.
-    queries = _read_jsonl(os.path.join(args.data_dir,
-                                       "wikinews15_v2_xtreme.jsonl"))
-    logger.info("Loaded {} queries.".format(len(queries)))
+    # 'lang' argument intentionally left unfilled.
+    gold_file_pattern_json = os.path.join(args.output_dir, "gold-{lang}.json")
+    pred_file_pattern_json = os.path.join(args.output_dir, "pred-{lang}.json")
 
-    # Split input by languages in keeping with the other tasks.
-    queries_by_lang = collections.defaultdict(list)
-    for q in queries:
-      queries_by_lang[q["lang"]].append(q)
-    macro_mrr = []
-    for lang, queries_slice in queries_by_lang.items():
+    for lang in utils_mewslix.MENTION_LANGUAGES:
       query_text_file = os.path.join(args.output_dir, f"queries.{lang}.txt")
       query_tok_file = os.path.join(args.output_dir, f"queries.{lang}.tok")
       embed_file = os.path.join(args.output_dir, f"queries.{lang}.emb")
-      query_predictions_file = os.path.join(args.output_dir,
-                                            f"queries.{lang}.predicted.txt")
-      with open(query_text_file, "w") as f:
-        for query in queries_slice:
-          f.write("%s\n" % query["query"])
+
+      # Unstructured output file for manual inspection.
+      debug_dump_file = os.path.join(args.output_dir,
+                                     f"queries.{lang}.predicted_verbose.txt")
+
+      # Select the language subset.
+      mentions = [m for m in mentions_dataset if m.context.language == lang]
+
+      query_texts = [utils_mewslix.preprocess_mention(m) for m in mentions]
+      with open(query_text_file, "w") as query_out:
+        for query_text in query_texts:
+          query_out.write("%s\n" % query_text)
 
       query_encodings = extract_encodings(args, query_text_file, query_tok_file,
                                           embed_file, lang=lang,
-                                          max_seq_length=args.max_query_length)
+                                          max_seq_length=args.max_seq_length)
 
       # Retrieve K nearest-neighbors for each query in the current query slice,
       # using exact search.
-      K = 100
-      scores, predictions = candidate_index.search(query_encodings, K)
-      predictions_qids = []
-      with open(query_predictions_file, "w") as f:
-        for i, neighbor_ids in enumerate(predictions):
-          # Map predictions from internal sequential ids to entity QIDs.
-          qids = [candidate_id2qid[neighbor] for neighbor in neighbor_ids]
-          predictions_qids.append(qids)
-          if i < 5:  # for debug inspection
-            logger.info("Retrieval output for '%s'" % queries_slice[i]["query"])
-            logger.info("gold=%s, predicted:" % queries_slice[i]["entity_qid"])
-            for qid in qids[:5]:
-              logger.info("\t%s: %s" % (qid, qid2text[qid]))
-          f.write("%s\n" % "\t".join(qids))
+      _, predictions = candidate_index.search(query_encodings,
+                                              utils_mewslix.TOP_K)
 
-      mrr_slice = el_eval(queries_slice, predictions_qids)
-      macro_mrr.append(mrr_slice)
-      logger.info("MRR for query_slice: %.4f" % mrr_slice)
+      # Map predictions from sequential indexes (0 through len(candidates)-1)
+      # back to the corresponding Entity objects.
+      pred_entities = []
+      for neighbor_seq_ids in predictions:
+        pred_entities.append([candidates[neighbor_seq_id]
+                              for neighbor_seq_id in neighbor_seq_ids])
 
+      # Output debug info.
+      with open(debug_dump_file, "w") as debug_f:
+        for i in range(len(query_texts)):
+          # Log first few items for quick sanity checking.
+          if i < 5:
+            logger.info("Retrieval output for '%s'", query_texts[i])
+            logger.info("gold qid=%s, predicted:",
+                        mentions[i].mention.entity_id)
+            for j, neighbor_seq_id in enumerate(predictions[i][:5]):
+              logger.info("\t%s: %s", pred_entities[i][j].entity_id,
+                          candidate_texts[neighbor_seq_id])
+
+          # Dump debug info to file.
+          mention = mentions[i].mention
+          debug_f.write(f"ID:\t{mention.example_id}\n")
+          debug_f.write(f"Query:\t{query_texts[i]}\n")
+          gold_qid = mention.entity_id
+          debug_f.write(
+              f"Gold:\t{gold_qid}\t{candidate_texts[qid_to_seq_id[gold_qid]]}\n")
+          for j, neighbor_seq_id in enumerate(predictions[i]):
+            debug_f.write(f"Prediction({j}):\t{pred_entities[i][j].entity_id}\t"
+                          f"{candidate_texts[neighbor_seq_id]}\n")
+          debug_f.write("\n")
+
+      # Write JSON files for the eval.
+      gold_file_json = gold_file_pattern_json.format(lang=lang)
+      pred_file_json = pred_file_pattern_json.format(lang=lang)
+      example_id_to_gold, example_id_to_preds = {}, {}
+      for query, query_pred_entities in zip(mentions, pred_entities):
+        example_id_to_gold[query.mention.example_id] = [query.mention.entity_id]
+        example_id_to_preds[query.mention.example_id] = [
+            pred_entity.entity_id for pred_entity in query_pred_entities]
+      with open(gold_file_json, "w") as f:
+        json.dump(example_id_to_gold, f)
+      with open(pred_file_json, "w") as f:
+        json.dump(example_id_to_preds, f)
+
+    result_file = os.path.join(args.output_dir, "eval_report.tsv")
+    logger.info("Report: %s", result_file)
+    macro_avg = utils_mewslix.evaluate_all(
+        gold_file_pattern=gold_file_pattern_json,
+        pred_file_pattern=pred_file_pattern_json,
+        output_path=result_file)
     print("*" * 10)
-    logger.info("Final MRR (macro-averaged over languages): %.4f" %
-                np.mean(macro_mrr))
+    print(f"Final MRR (macro-averaged over languages): {macro_avg * 100:.2f}")
     print("*" * 10)
 
   elif args.task_name == 'tatoeba':
