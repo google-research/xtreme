@@ -22,6 +22,12 @@ mkdir -p $LIB
 # install conda env
 conda create --name xtreme --file conda-env.txt
 conda init bash
+
+# If 'conda activate' fails below, try uncommenting the following lines,
+# based on https://github.com/conda/conda/issues/7980.
+# CONDA_PATH=$(conda info | grep -i 'base environment' | awk '{print $4}')
+# source $CONDA_PATH/etc/profile.d/conda.sh
+
 conda activate xtreme
 
 # install latest transformer

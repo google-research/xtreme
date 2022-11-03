@@ -110,3 +110,16 @@ https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.17.4-py37hc1035e2_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/pandas-0.25.3-py37he6710b0_0.tar.bz2
 https://conda.anaconda.org/pytorch/linux-64/pytorch-1.3.1-py3.7_cuda10.0.130_cudnn7.6.3_0.tar.bz2
 https://conda.anaconda.org/pytorch/linux-64/torchvision-0.4.2-py37_cu100.tar.bz2
+https://repo.anaconda.com/pkgs/main/linux-64/svn-1.10.2-h52f66ed_0.conda
+https://repo.anaconda.com/pkgs/main/linux-64/libgomp-11.2.0-h1234567_1.conda
+https://repo.anaconda.com/pkgs/main/linux-64/_openmp_mutex-5.1-1_gnu.conda
+https://repo.anaconda.com/pkgs/main/linux-64/libapr-1.7.0-hf178f73_5.conda
+https://repo.anaconda.com/pkgs/main/linux-64/libntlm-1.6-h7f8727e_0.conda
+https://repo.anaconda.com/pkgs/main/linux-64/libutf8proc-2.1.1-h14c3975_0.conda
+https://repo.anaconda.com/pkgs/main/linux-64/lz4-c-1.8.1.2-h14c3975_0.conda
+https://repo.anaconda.com/pkgs/main/linux-64/libapriconv-1.2.2-h7f8727e_5.conda
+https://repo.anaconda.com/pkgs/main/linux-64/libaprutil-1.6.1-hfefca11_5.conda
+https://repo.anaconda.com/pkgs/main/linux-64/apr-1.7.0-hf178f73_5.conda
+https://repo.anaconda.com/pkgs/main/linux-64/krb5-1.19.2-hac12032_0.conda
+https://repo.anaconda.com/pkgs/main/linux-64/cyrus-sasl-2.1.27-h9c0eb46_9.conda
+https://repo.anaconda.com/pkgs/main/linux-64/serf-1.3.9-ha066f01_0.conda

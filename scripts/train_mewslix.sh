@@ -23,30 +23,27 @@ OUT_DIR=${4:-"$REPO/outputs"}
 TASK='mewslix'
 
 # These settings should match those used in scripts/run_eval_mewslix.sh
-# They are primarily aimed at a quick turnaround time (~1h using 1 GPU).
+# They are primarily aimed at a quick training time (~1h using 1 GPU for mBERT).
 MAX_SEQ_LEN=64
 NUM_EPOCHS=2
 GRAD_ACC_STEPS=4
 
+# Learning rates were set based on best dev-set loss on the English
+# 'wikipedia_pairs-dev' after 2 epochs, searching over {1e-5, 2e-5, 5e-5, 1e-4}.
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert-retrieval"
-  LR=2e-5  # best dev-set loss after 2 epochs among {1e-5, 2e-5, 5e-5, 1e-4}
+  LR=2e-5
   DO_LOWER_CASE=""
   PER_GPU_BATCH_SIZE=64  # largest power of two that fit 16GB GPU RAM
   LOGGING_STEPS=50
   SAVE_STEPS=100
-# BEGIN GOOGLE-INTERNAL
-# TODO(jabot,ruder): The XLM-R baseline requires some further hyperparam
-# tuning and/or troubleshooting, as it scored near zero on the eval metric
-# using the current settings.
 elif [ $MODEL == "xlm-roberta-large" ]; then
   MODEL_TYPE="xlmr-retrieval"
-  LR=1e-4
+  LR=1e-5
   DO_LOWER_CASE="--do_lower_case"
   PER_GPU_BATCH_SIZE=8  # largest power of two that fit 16GB GPU RAM
   LOGGING_STEPS=500
   SAVE_STEPS=2000
-# END GOOGLE-INTERNAL
 else
   echo "$MODEL not configured."
 fi
@@ -83,3 +80,6 @@ python third_party/run_retrieval_el.py \
   --eval_lang en \
   $DO_LOWER_CASE \
   2>&1 | tee $MODEL_DIR/train.log
+
+set +x
+bash $REPO/scripts/run_eval_mewslix.sh $MODEL_DIR $GPU $DATA_DIR $OUT_DIR

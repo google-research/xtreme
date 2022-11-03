@@ -293,7 +293,9 @@ def evaluate(prediction_folder, label_folder, xtreme_version, verbose=False):
         score['avg_metric'] = score['avg_f1']
       elif 'avg_accuracy' in score:
         score['avg_metric'] = score['avg_accuracy']
-      detailed_scores[task] = score
+      elif 'avg_map@20' in score:
+        score['avg_metric'] = score['avg_map@20']
+      detailed_scores[task] = dict(score)
       if verbose:
         avg_result = ', '.join(['{}={:.1f}'.format(k, v)
                                 for k, v in score.items()

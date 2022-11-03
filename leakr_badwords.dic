@@ -1,0 +1,2 @@
+;; Changed 'mum' to Info severity
+$RE:(^|[\W])((?i)mum(?-i))($|[\W]);0;Use regex as mum is a common letter combo

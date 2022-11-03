@@ -21,7 +21,8 @@ MODEL=${1:-bert-base-multilingual-cased}
 GPU=${2:-0}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
-# Select a checkpoint based on validation performance.
+# Select a checkpoint based on validation performance. Results in the XTREME-R
+# paper used mBERT checkpoint-9000 and XLM-R checkpoint-10000.
 CHECKPOINT=${5:-checkpoint-9000}
 
 TASK='lareqa'

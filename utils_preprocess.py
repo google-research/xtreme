@@ -33,6 +33,7 @@ TOKENIZERS = {
 
 PANX_LANGUAGES = 'ar he vi id jv ms tl eu ml ta te af nl en de el bn hi mr ur fa fr it pt es bg ru ja ka ko th sw yo my zh kk tr et fi hu qu pl uk az lt pa gu ro'.split(' ')
 UDPOS_LANGUAGES = 'af ar bg de el en es et eu fa fi fr he hi hu id it ja kk ko mr nl pt ru ta te th tl tr ur vi yo zh lt pl uk wo ro'.split(' ')
+MEWSLIX_INPUT_LANGUAGES = 'ar de en es fa ja pl ro ta tr uk'.split(' ')
 
 def panx_tokenize_preprocess(args):
   def _preprocess_one_file(infile, outfile, idxfile, tokenizer, max_len):
@@ -510,6 +511,62 @@ def xcopa_preprocess(args):
         f.write(json_ex + '\n')
 
 
+def mewslix_preprocess(args):
+
+  def preprocess_split(split_name, remove_labels):
+    """Shard into per-language files and maybe drop labels."""
+    mention_input_file = os.path.join(args.data_dir,
+                                      f'wikinews_mentions-{split_name}.jsonl')
+    # Map from language to list of examples with possibly removed labels,
+    # keeping the nesting structure of the input data.
+    lang_to_inputs = defaultdict(list)
+    # Map from language to dictionary {example_id: [gold_label]}.
+    lang_to_labels = defaultdict(dict)
+    with open(mention_input_file, 'r') as f:
+      for row in f:
+        example = json.loads(row)
+        context = example['context']
+        language = context['language']
+        new_mentions = []
+        for mention in example['mentions']:
+          # Remove the test annotations to prevent accidental cheating.
+          if remove_labels:
+            mention['entity_id'] = ''
+          example_id = mention['example_id']
+          lang_to_labels[language][example_id] = [mention['entity_id']]
+          new_mentions.append(mention)
+
+        lang_to_inputs[language].append({
+            'context': context,
+            'mentions': new_mentions
+        })
+
+    # Write per-language output files, iterating over the expected languages to
+    # catch if any are missing from the processed data.
+    mentions_outdir = os.path.join(args.output_dir, 'wikinews_mentions')
+    os.makedirs(mentions_outdir, exist_ok=True)
+    lang_to_inputs = dict(lang_to_inputs)
+    for lang in MEWSLIX_INPUT_LANGUAGES:
+      lang_examples = lang_to_inputs[lang]
+      output_file = os.path.join(mentions_outdir, f'{split_name}-{lang}.jsonl')
+      with open(output_file, 'w') as f:
+        for example in lang_examples:
+          json_ex = json.dumps(example)
+          f.write(json_ex + '\n')
+
+    labels_outdir = os.path.join(args.output_dir, 'wikinews_labels')
+    os.makedirs(labels_outdir, exist_ok=True)
+    lang_to_labels = dict(lang_to_labels)
+    for lang in MEWSLIX_INPUT_LANGUAGES:
+      output_file = os.path.join(labels_outdir, f'{split_name}-{lang}.json')
+      with open(output_file, 'w') as f:
+        json.dump(lang_to_labels[lang], f)
+
+  assert os.path.exists(args.data_dir)
+  preprocess_split('dev', remove_labels=False)
+  preprocess_split('test', remove_labels=True)
+
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
@@ -560,3 +617,5 @@ if __name__ == "__main__":
     tydiqa_preprocess(args)
   if args.task == 'xcopa':
     xcopa_preprocess(args)
+  if args.task == 'mewslix':
+    mewslix_preprocess(args)

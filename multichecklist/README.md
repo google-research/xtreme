@@ -29,7 +29,7 @@ pip install absl-py
 pip install checklist
 ```
 
-3. Download the MultiCheckList tests and model predictions from [here](https://pantheon.corp.google.com/storage/browser/xtreme_translations/MultiCheckList) into this folder. [`gsutil`](https://cloud.google.com/storage/docs/gsutil_install) is
+3. Download the MultiCheckList tests and model predictions from [here](https://console.cloud.google.com/storage/browser/xtreme_translations/MultiCheckList) into this folder. [`gsutil`](https://cloud.google.com/storage/docs/gsutil_install) is
 the preferred way to download all files at once:
 
 ```

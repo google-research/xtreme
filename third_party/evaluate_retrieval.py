@@ -604,12 +604,15 @@ def main():
         question_set, candidate_set, k=20)
     print("*" * 10)
   elif args.task_name == 'mewslix':
+    # What splits to run retrieval and evaluation on. Note: test set labels have
+    # been removed in preprocessing, so the eval will show a zero score for the
+    # test set.
+    eval_splits = ("dev", "test")
+
     _check_model_type_support(args.task_name, args.model_type)
     base_output_path = os.path.join(args.output_dir, 'mewslix')
     candidates_input_file = os.path.join(args.data_dir,
                                          "candidate_set_entities.jsonl")
-    mention_input_file = os.path.join(args.data_dir,
-                                      "wikinews_mentions-dev.jsonl")
 
     # Set up a single index for all candidate encoding vectors, which will
     # use exhaustive search.
@@ -648,97 +651,131 @@ def main():
     candidate_index.add(candidate_encodings)
     logger.info("Candidate index size = %d", candidate_index.ntotal)
 
-    # Encode queries.
-    mentions_dataset = utils_mewslix.load_jsonl(
-        mention_input_file, utils_mewslix.ContextualMentions)
-    mentions_dataset = list(itertools.chain.from_iterable(
-        doc_mentions.unnest_to_single_mention_per_context()
-        for doc_mentions in mentions_dataset))
-    logger.info("Loaded %d queries.", len(mentions_dataset))
+    # Encode queries and perform nearest-neighbor search for each split
+    # and language.
 
-    # 'lang' argument intentionally left unfilled.
-    gold_file_pattern_json = os.path.join(args.output_dir, "gold-{lang}.json")
-    pred_file_pattern_json = os.path.join(args.output_dir, "pred-{lang}.json")
+    # f-string arguments intentionally left unfilled in these paths.
+    gold_file_pattern_json = os.path.join(args.data_dir, "wikinews_labels",
+                                          "{split}-{lang}.json")
+    pred_file_pattern_json = os.path.join(args.output_dir, "pred",
+                                          "{split}-{lang}.json")
+    # Sanity check that all label files are present.
+    for split in eval_splits:
+      for lang in utils_mewslix.MENTION_LANGUAGES:
+        path = gold_file_pattern_json.format(split=split, lang=lang)
+        assert os.path.exists(path), path
 
-    for lang in utils_mewslix.MENTION_LANGUAGES:
-      query_text_file = os.path.join(args.output_dir, f"queries.{lang}.txt")
-      query_tok_file = os.path.join(args.output_dir, f"queries.{lang}.tok")
-      embed_file = os.path.join(args.output_dir, f"queries.{lang}.emb")
+    for split in eval_splits:
+      for lang in utils_mewslix.MENTION_LANGUAGES:
+        mention_input_file = os.path.join(args.data_dir, "wikinews_mentions",
+                                          f"{split}-{lang}.jsonl")
+        mentions_dataset = utils_mewslix.load_jsonl(
+            mention_input_file, utils_mewslix.ContextualMentions)
+        mentions = list(
+            itertools.chain.from_iterable(
+                doc_mentions.unnest_to_single_mention_per_context()
+                for doc_mentions in mentions_dataset))
+        logger.info("Loaded %d queries for '%s'.", len(mentions), lang)
 
-      # Unstructured output file for manual inspection.
-      debug_dump_file = os.path.join(args.output_dir,
-                                     f"queries.{lang}.predicted_verbose.txt")
+        query_text_file = os.path.join(args.output_dir,
+                                       f"{split}-queries.{lang}.txt")
+        query_tok_file = os.path.join(args.output_dir,
+                                      f"{split}-queries.{lang}.tok")
+        embed_file = os.path.join(args.output_dir,
+                                  f"{split}-queries.{lang}.emb")
 
-      # Select the language subset.
-      mentions = [m for m in mentions_dataset if m.context.language == lang]
+        # Unstructured output file for manual inspection.
+        debug_dump_file = os.path.join(
+            args.output_dir, f"{split}-queries.{lang}.predicted_verbose.txt")
 
-      query_texts = [utils_mewslix.preprocess_mention(m) for m in mentions]
-      with open(query_text_file, "w") as query_out:
-        for query_text in query_texts:
-          query_out.write("%s\n" % query_text)
+        # Check language subset.
+        found_languages = set(m.context.language for m in mentions)
+        assert found_languages == set((lang,)), (lang, found_languages)
 
-      query_encodings = extract_encodings(args, query_text_file, query_tok_file,
-                                          embed_file, lang=lang,
-                                          max_seq_length=args.max_seq_length)
+        query_texts = [utils_mewslix.preprocess_mention(m) for m in mentions]
+        with open(query_text_file, "w") as query_out:
+          for query_text in query_texts:
+            query_out.write("%s\n" % query_text)
 
-      # Retrieve K nearest-neighbors for each query in the current query slice,
-      # using exact search.
-      _, predictions = candidate_index.search(query_encodings,
-                                              utils_mewslix.TOP_K)
+        query_encodings = extract_encodings(
+            args,
+            query_text_file,
+            query_tok_file,
+            embed_file,
+            lang=lang,
+            max_seq_length=args.max_seq_length)
 
-      # Map predictions from sequential indexes (0 through len(candidates)-1)
-      # back to the corresponding Entity objects.
-      pred_entities = []
-      for neighbor_seq_ids in predictions:
-        pred_entities.append([candidates[neighbor_seq_id]
-                              for neighbor_seq_id in neighbor_seq_ids])
+        # Retrieve K nearest-neighbors for each query in the current query
+        # slice, using exact search.
+        _, predictions = candidate_index.search(query_encodings,
+                                                utils_mewslix.TOP_K)
 
-      # Output debug info.
-      with open(debug_dump_file, "w") as debug_f:
-        for i in range(len(query_texts)):
-          # Log first few items for quick sanity checking.
-          if i < 5:
-            logger.info("Retrieval output for '%s'", query_texts[i])
-            logger.info("gold qid=%s, predicted:",
-                        mentions[i].mention.entity_id)
-            for j, neighbor_seq_id in enumerate(predictions[i][:5]):
-              logger.info("\t%s: %s", pred_entities[i][j].entity_id,
-                          candidate_texts[neighbor_seq_id])
+        # Map predictions from sequential indexes (0 through len(candidates)-1)
+        # back to the corresponding Entity objects.
+        pred_entities = []
+        for neighbor_seq_ids in predictions:
+          pred_entities.append([
+              candidates[neighbor_seq_id]
+              for neighbor_seq_id in neighbor_seq_ids
+          ])
 
-          # Dump debug info to file.
-          mention = mentions[i].mention
-          debug_f.write(f"ID:\t{mention.example_id}\n")
-          debug_f.write(f"Query:\t{query_texts[i]}\n")
-          gold_qid = mention.entity_id
-          debug_f.write(
-              f"Gold:\t{gold_qid}\t{candidate_texts[qid_to_seq_id[gold_qid]]}\n")
-          for j, neighbor_seq_id in enumerate(predictions[i]):
-            debug_f.write(f"Prediction({j}):\t{pred_entities[i][j].entity_id}\t"
-                          f"{candidate_texts[neighbor_seq_id]}\n")
-          debug_f.write("\n")
+        # Output debug info.
+        with open(debug_dump_file, "w") as debug_f:
+          for i in range(len(query_texts)):
+            gold_qid = "?" if split == "test" else mentions[i].mention.entity_id
+            # Log first few items for quick sanity checking.
+            if i < 5:
+              logger.info("Retrieval output for '%s'", query_texts[i])
+              logger.info("gold qid=%s, predicted:", gold_qid)
+              for j, neighbor_seq_id in enumerate(predictions[i][:5]):
+                logger.info("\t%s: %s", pred_entities[i][j].entity_id,
+                            candidate_texts[neighbor_seq_id])
 
-      # Write JSON files for the eval.
-      gold_file_json = gold_file_pattern_json.format(lang=lang)
-      pred_file_json = pred_file_pattern_json.format(lang=lang)
-      example_id_to_gold, example_id_to_preds = {}, {}
-      for query, query_pred_entities in zip(mentions, pred_entities):
-        example_id_to_gold[query.mention.example_id] = [query.mention.entity_id]
-        example_id_to_preds[query.mention.example_id] = [
-            pred_entity.entity_id for pred_entity in query_pred_entities]
-      with open(gold_file_json, "w") as f:
-        json.dump(example_id_to_gold, f)
-      with open(pred_file_json, "w") as f:
-        json.dump(example_id_to_preds, f)
+            # Dump debug info to file.
+            mention = mentions[i].mention
+            debug_f.write(f"ID:\t{mention.example_id}\n")
+            debug_f.write(f"Query:\t{query_texts[i]}\n")
+            if split == "test":
+              gold_text = ""
+            else:
+              gold_text = candidate_texts[qid_to_seq_id[gold_qid]]
+            debug_f.write(f"Gold:\t{gold_qid}\t{gold_text}\n")
+            for j, neighbor_seq_id in enumerate(predictions[i]):
+              debug_f.write(
+                  f"Prediction({j}):\t{pred_entities[i][j].entity_id}\t"
+                  f"{candidate_texts[neighbor_seq_id]}\n")
+            debug_f.write("\n")
 
-    result_file = os.path.join(args.output_dir, "eval_report.tsv")
-    logger.info("Report: %s", result_file)
-    macro_avg = utils_mewslix.evaluate_all(
-        gold_file_pattern=gold_file_pattern_json,
-        pred_file_pattern=pred_file_pattern_json,
-        output_path=result_file)
-    print("*" * 10)
-    print(f"Final MRR (macro-averaged over languages): {macro_avg * 100:.2f}")
-    print("*" * 10)
+        # Write predictions to JSON file for the eval.
+        pred_file_json = pred_file_pattern_json.format(split=split, lang=lang)
+        os.makedirs(os.path.dirname(pred_file_json), exist_ok=True)
+        example_id_to_preds = {}
+        for query, query_pred_entities in zip(mentions, pred_entities):
+          example_id_to_preds[query.mention.example_id] = [
+              pred_entity.entity_id for pred_entity in query_pred_entities
+          ]
+        with open(pred_file_json, "w") as f:
+          json.dump(example_id_to_preds, f)
+
+    for split in eval_splits:
+      # Report results for the whole split.
+      result_file = os.path.join(args.output_dir, f"{split}-eval_report.tsv")
+      logger.info("Report [%s]: %s", split, result_file)
+
+      macro_avg = utils_mewslix.evaluate_all(
+          # Leave 'lang'-argument unspecified in the f-string, as required
+          # by evaluate_all.
+          gold_file_pattern=gold_file_pattern_json.format(split=split,
+                                                          lang="{lang}"),
+          pred_file_pattern=pred_file_pattern_json.format(split=split,
+                                                          lang="{lang}"),
+          output_path=result_file)
+      print("*" * 10)
+      print(f"Final MRR (macro-averaged over languages) [{split}]: "
+            f"{macro_avg * 100:.2f}")
+      if split == "test":
+        print("WARNING: ignore test set score; true labels have been removed")
+      print("*" * 10)
 
   elif args.task_name == 'tatoeba':
     lang3_dict = {'ara':'ar', 'heb':'he', 'vie':'vi', 'ind':'id',

@@ -245,6 +245,58 @@ function download_siqa {
     echo "Successfully downloaded data at $DIR/siqa" >> $DIR/download.log
 }
 
+function download_mewslix {
+    echo "download mewslix [5-10 mins]"
+    OUTPATH=$DIR/mewslix
+    OUTPATH_TMP=$OUTPATH/tmp
+    mkdir -p $OUTPATH_TMP
+    pushd $OUTPATH_TMP
+    svn export -q https://github.com/google-research/google-research/trunk/dense_representations_for_entity_retrieval
+    pushd dense_representations_for_entity_retrieval/mel
+
+    ( # Use a subshell to keep things separate from an already active conda env.
+    # If 'conda activate' fails below, try uncommenting the following lines,
+    # based on https://github.com/conda/conda/issues/7980.
+    # CONDA_PATH=$(conda info | grep -i 'base environment' | awk '{print $4}')
+    # source $CONDA_PATH/etc/profile.d/conda.sh
+
+    # Create and activate a dedicated conda environment for Mewsli-X extraction.
+    bash create-env.sh conda
+    conda activate mewsli_env
+
+    # Run the Mewsli-X downloader script.
+    bash get-mewsli-x.sh
+    )
+
+    INTERIM_DIR=$PWD/mewsli_x/output/dataset
+    echo
+    echo "Move dataset to $OUTPATH/"
+    mv $INTERIM_DIR/candidate_set_entities.jsonl $OUTPATH/
+    mv $INTERIM_DIR/wikipedia_pairs-{train,dev}.jsonl $OUTPATH/
+    mv $INTERIM_DIR/wikinews_mentions-{dev,test}.jsonl $OUTPATH/
+    popd
+    popd
+
+    python $REPO/utils_preprocess.py --data_dir $OUTPATH --output_dir $OUTPATH --task mewslix
+    rm -rf $OUTPATH_TMP $OUTPATH/wikinews_mentions-{dev,test}.jsonl
+    echo "Successfully downloaded data at $OUTPATH" >> $DIR/download.log
+}
+
+function download_lareqa {
+    echo "download lareqa"
+    OUTPATH=$DIR/lareqa/
+    mkdir -p $OUTPATH
+    cd $OUTPATH
+    wget https://github.com/google-research-datasets/lareqa/archive/master.zip -q --show-progress
+    unzip master.zip
+    mv lareqa-master/* .
+    rm -rf lareqa-master/
+    rm master.zip
+    rm LICENSE
+    rm README.md
+    echo "Successfully downloaded data at $OUTPATH" >> $DIR/download.log
+}
+
 download_xnli
 download_pawsx
 download_tatoeba
@@ -257,3 +309,5 @@ download_udpos
 download_panx
 download_xcopa
 download_siqa
+download_mewslix
+download_lareqa
